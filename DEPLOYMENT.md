@@ -1,6 +1,6 @@
 # 🚀 TubiStream Cloud Deployment Guide
 
-This guide explains how to deploy the **TubiStream** platform to **Render**, **Vercel**, or **Netlify**.
+This guide explains how to deploy the **TubiStream** platform to **GitHub & GitHub Pages**, **Render**, **Vercel**, **Netlify**, or container clouds.
 
 ---
 
@@ -8,9 +8,73 @@ This guide explains how to deploy the **TubiStream** platform to **Render**, **V
 
 | Platform | Recommended Setup | Free Tier? | Best For |
 | :--- | :--- | :--- | :--- |
+| **GitHub Pages** | **Automated CI/CD via GitHub Actions** + Backend on Render | ✅ 100% Free | **Direct GitHub integration**. Free static hosting of the React client directly from your repository. |
 | **Render** *(Recommended)* | **All-in-One Fullstack** (Frontend + Backend in 1 Web Service) | ✅ Yes | **Easiest setup.** Single URL, zero CORS issues, 1-click Git deployment. |
 | **Vercel** | **Frontend on Vercel CDN** + Backend on Render | ✅ Yes | Maximum global CDN speed for React frontend. |
 | **Netlify** | **Frontend on Netlify** + Backend on Render | ✅ Yes | Alternate CDN host with automatic preview deploys. |
+
+---
+
+## 🐙 Option 0: GitHub & GitHub Pages (Source Control + Free Client Hosting)
+
+GitHub provides:
+1. **Source Code Hosting**: Secure version control and collaborative Git management.
+2. **GitHub Actions CI/CD**: Automatically builds your code on every `git push`.
+3. **GitHub Pages**: Free high-speed global static hosting for the React web app.
+
+### Part 1: Push Your Code to GitHub
+
+1. Open your terminal or PowerShell in `c:\Users\XPRISTO\Desktop\tva\tv-stream`.
+2. Configure your Git name and email (if not already done):
+   ```bash
+   git config user.name "Your Name"
+   git config user.email "your-email@example.com"
+   ```
+3. Verify your remote origin points to your GitHub repository:
+   ```bash
+   git remote -v
+   # Should display: https://github.com/apachitech/tubistream-vod.git
+   ```
+   *(If not set, run `git remote add origin https://github.com/apachitech/tubistream-vod.git`)*
+4. Push your code to the `main` branch:
+   ```bash
+   git push -u origin main
+   ```
+   *(If prompted by Windows, click **"Sign in with your browser"** to authorize.)*
+
+---
+
+### Part 2: Enable Free GitHub Pages Web Hosting
+
+The repository is already equipped with an automated GitHub Actions deployment workflow at [`.github/workflows/deploy-pages.yml`](./.github/workflows/deploy-pages.yml).
+
+1. Go to your repository on GitHub: `https://github.com/apachitech/tubistream-vod`.
+2. Click **Settings** (top navigation tab) ➔ **Pages** (in the left sidebar menu).
+3. Under **"Build and deployment"**:
+   - In the **Source** dropdown menu, select: **`GitHub Actions`**.
+4. GitHub will automatically trigger the workflow, install dependencies, compile the React Vite client, and publish the site.
+5. Within ~60 seconds, your site will be live at:
+   ```
+   https://apachitech.github.io/tubistream-vod/
+   ```
+
+---
+
+### Part 3: Connecting Your Backend to GitHub Pages
+
+> **Important**: GitHub Pages hosts client-side static web apps (HTML, CSS, JavaScript). Because the streaming catalog, live FAST channel EPG, and ad decision server run on Node.js/Express, the backend should run on **Render** (free) or a VPS.
+
+1. Deploy the backend to **Render** using Option 1 below. You will receive a URL like:
+   ```
+   https://tubistream-vod.onrender.com
+   ```
+2. In your GitHub repository:
+   - Go to **Settings** ➔ **Secrets and variables** ➔ **Actions**.
+   - Click **"New repository secret"**.
+   - **Name**: `VITE_API_URL`
+   - **Value**: `https://tubistream-vod.onrender.com/api`
+3. Click **"Add secret"**.
+4. Any future `git push` to `main` will automatically build the React client pointing to your live cloud backend!
 
 ---
 
