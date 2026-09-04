@@ -178,6 +178,8 @@ export interface UserProfile {
 export interface User {
   id: string;
   email: string;
+  name?: string;
+  isGuest?: boolean;
   tier: 'free' | 'vip_premium';
   profiles: UserProfile[];
   activeProfileId: string;

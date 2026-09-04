@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDeviceMode } from '../../context/DeviceModeContext';
 import {
-  Search, Tv, Crown, Film, Layers, LayoutDashboard, X, Check, Mic, Users, Download, Menu, ChevronDown, Heart, MoreHorizontal, Sparkles
+  Search, Tv, Crown, Film, Layers, LayoutDashboard, X, Check, Mic, Users, Download, Menu, ChevronDown, Heart, MoreHorizontal, LogIn, LogOut, Plus, UserCheck
 } from 'lucide-react';
 import { Title } from '../../types';
 import { api } from '../../services/api';
@@ -20,7 +20,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSubscriptionModal,
   onSelectTitle
 }) => {
-  const { user, activeProfile, switchProfile } = useAuth();
+  const {
+    user,
+    activeProfile,
+    switchProfile,
+    isAuthenticated,
+    isGuest,
+    logout,
+    openAuthModal,
+    addProfile
+  } = useAuth();
   const { deviceMode } = useDeviceMode();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +39,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAddingProfile, setIsAddingProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -92,6 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       }
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
         setIsProfileMenuOpen(false);
+        setIsAddingProfile(false);
       }
       if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target as Node)) {
         setIsCategoryMenuOpen(false);
@@ -103,6 +115,16 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleAddProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProfileName.trim()) return;
+    const ok = await addProfile(newProfileName.trim());
+    if (ok) {
+      setNewProfileName('');
+      setIsAddingProfile(false);
+    }
+  };
 
   const isMobileScreen = windowWidth < 850 || deviceMode === 'mobile';
   const isCompactDesktop = windowWidth < 1220 && !isMobileScreen;
@@ -125,12 +147,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           maxWidth: '100%',
           width: '100%',
           margin: '0 auto',
-          padding: '0 16px',
+          padding: '0 18px',
           height: '62px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px',
+          gap: '16px',
           boxSizing: 'border-box'
         }}
       >
@@ -139,12 +161,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '14px',
             minWidth: 0,
             flex: '1 1 auto'
           }}
         >
-          {/* Mobile Hamburger Toggle Button (shown on mobile & compact views) */}
+          {/* Mobile Hamburger Toggle Button */}
           {isMobileScreen && (
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -176,10 +198,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '9px',
               cursor: 'pointer',
               userSelect: 'none',
-              flexShrink: 0
+              flexShrink: 0,
+              paddingRight: '4px'
             }}
           >
             <div
@@ -233,13 +256,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '6px',
                 flexWrap: 'nowrap',
                 overflow: 'visible',
                 minWidth: 0,
                 padding: '2px 0'
               }}
             >
+              {/* Core Channels Group */}
               {/* 1. Home */}
               <button
                 onClick={() => setCurrentView('home')}
@@ -281,6 +305,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 />
                 Live FAST TV
               </button>
+
+              {/* Subtle visual separator before library & community links */}
+              {!isCompactDesktop && (
+                <div
+                  style={{
+                    width: '1px',
+                    height: '20px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    margin: '0 3px',
+                    flexShrink: 0
+                  }}
+                />
+              )}
 
               {/* In Full Desktop View (>= 1220px): Render all remaining links directly */}
               {!isCompactDesktop && (
@@ -490,12 +527,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* Right: Search, VIP, Activate TV, Admin, Profile */}
+        {/* Right: Search, VIP, Activate TV, Admin, Authentication & Profile */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             flexShrink: 0
           }}
         >
@@ -512,6 +549,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 width: isSearchOpen
                   ? (windowWidth < 768 ? '180px' : '220px')
                   : (windowWidth >= 1350 ? '135px' : '36px'),
+                height: '36px',
+                boxSizing: 'border-box',
                 transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 cursor: !isSearchOpen && windowWidth < 1350 ? 'pointer' : 'default',
                 boxShadow: isSearchOpen ? '0 0 14px rgba(255, 42, 109, 0.25)' : 'none'
@@ -666,6 +705,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               fontSize: '0.78rem',
               fontWeight: 600,
               padding: '6px 10px',
+              height: '36px',
               borderRadius: '7px',
               background: currentView === 'activate-tv' ? 'rgba(5, 217, 232, 0.2)' : 'rgba(255,255,255,0.06)',
               border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.14)',
@@ -689,7 +729,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="badge-vip"
               style={{
                 fontSize: '0.72rem',
-                padding: '4px 8px',
+                padding: '0 8px',
+                height: '36px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -703,7 +744,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onOpenSubscriptionModal}
               className="btn-primary"
               style={{
-                padding: '6px 11px',
+                padding: '0 11px',
+                height: '36px',
                 fontSize: '0.78rem',
                 gap: '5px',
                 whiteSpace: 'nowrap',
@@ -719,7 +761,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => setCurrentView('admin')}
             style={{
-              padding: '6px 10px',
+              padding: '0 10px',
+              height: '36px',
               borderRadius: '7px',
               background: currentView === 'admin' ? '#9d4edd' : 'rgba(157, 78, 221, 0.18)',
               border: '1px solid rgba(157, 78, 221, 0.45)',
@@ -739,7 +782,29 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>{windowWidth < 1250 ? 'Admin' : 'Admin CMS'}</span>
           </button>
 
-          {/* Profile Switcher Menu */}
+          {/* Authentication & Profile Section */}
+          {isGuest ? (
+            <button
+              onClick={() => openAuthModal('signin')}
+              className="btn-primary"
+              style={{
+                height: '36px',
+                padding: '0 12px',
+                fontSize: '0.80rem',
+                fontWeight: 700,
+                borderRadius: '8px',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                boxShadow: '0 0 16px rgba(255, 42, 109, 0.4)'
+              }}
+            >
+              <LogIn size={13} />
+              <span>Sign In</span>
+            </button>
+          ) : null}
+
+          {/* Profile Switcher Menu & User Info */}
           <div ref={profileMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
             <div
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -749,11 +814,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 gap: '6px',
                 cursor: 'pointer',
                 padding: '2px',
+                height: '36px',
+                boxSizing: 'border-box',
                 borderRadius: 'var(--radius-full)',
                 background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)'
+                border: isAuthenticated ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.15)',
+                boxShadow: isAuthenticated ? '0 0 10px rgba(255, 42, 109, 0.3)' : 'none',
+                position: 'relative'
               }}
-              title={`Active Profile: ${activeProfile?.name || 'User'}`}
+              title={isAuthenticated ? `Signed in as ${user?.name || user?.email}` : 'Guest Profile'}
             >
               <img
                 src={activeProfile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'}
@@ -762,10 +831,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                   width: '30px',
                   height: '30px',
                   borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '2px solid var(--accent-pink)'
+                  objectFit: 'cover'
                 }}
               />
+              {isAuthenticated && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: '2px',
+                    right: '2px',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#00f076',
+                    border: '1.5px solid #10121a'
+                  }}
+                />
+              )}
             </div>
 
             {isProfileMenuOpen && (
@@ -773,58 +855,200 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="glass-heavy animate-fade-in"
                 style={{
                   position: 'absolute',
-                  top: '44px',
+                  top: '46px',
                   right: 0,
-                  width: '230px',
+                  width: '260px',
                   padding: '14px',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   boxShadow: '0 20px 50px rgba(0,0,0,0.95)',
-                  border: '1px solid rgba(255, 42, 109, 0.3)',
+                  border: '1px solid rgba(255, 42, 109, 0.35)',
                   zIndex: 1005,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '10px'
                 }}
               >
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                {/* User Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  <img
+                    src={activeProfile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'}
+                    alt="Profile"
+                    style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-pink)' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {isAuthenticated ? (user?.name || user?.email?.split('@')[0]) : 'Guest Viewer'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {isAuthenticated ? user?.email : 'Viewing in Guest Mode'}
+                    </div>
+                    <div style={{ marginTop: '3px' }}>
+                      {user?.tier === 'vip_premium' ? (
+                        <span className="badge-vip" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>
+                          <Crown size={9} /> VIP Premium
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.08)', color: '#cbd5e1' }}>
+                          Free Member
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profiles Section */}
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
                   Switch Profile
                 </div>
-                {user?.profiles.map((prof) => (
-                  <div
-                    key={prof.id}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                  {user?.profiles.map((prof) => (
+                    <div
+                      key={prof.id}
+                      onClick={() => {
+                        switchProfile(prof.id);
+                        setIsProfileMenuOpen(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '7px 9px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: prof.id === activeProfile?.id ? 'rgba(255, 42, 109, 0.25)' : 'rgba(255,255,255,0.04)',
+                        border: prof.id === activeProfile?.id ? '1px solid var(--accent-pink)' : '1px solid transparent',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <img
+                          src={prof.avatarUrl}
+                          alt={prof.name}
+                          style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#fff' }}>{prof.name}</span>
+                        {prof.isKids && (
+                          <span style={{ fontSize: '0.65rem', background: 'rgba(0, 240, 118, 0.2)', color: '#00f076', padding: '1px 5px', borderRadius: '4px' }}>
+                            Kids
+                          </span>
+                        )}
+                      </div>
+                      {prof.id === activeProfile?.id && <Check size={14} color="var(--accent-pink)" />}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Profile Inline / Action */}
+                {isAddingProfile ? (
+                  <form onSubmit={handleAddProfile} style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                    <input
+                      type="text"
+                      placeholder="Profile name..."
+                      value={newProfileName}
+                      onChange={(e) => setNewProfileName(e.target.value)}
+                      autoFocus
+                      style={{
+                        flex: 1,
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '6px',
+                        padding: '6px 8px',
+                        color: '#fff',
+                        fontSize: '0.78rem',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      style={{
+                        background: 'var(--accent-pink)',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Add
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => setIsAddingProfile(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      color: 'var(--accent-pink)',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: 'rgba(255, 42, 109, 0.08)',
+                      border: '1px dashed rgba(255, 42, 109, 0.3)'
+                    }}
+                  >
+                    <Plus size={13} />
+                    <span>Add New Profile</span>
+                  </button>
+                )}
+
+                <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+
+                {/* Auth Actions: Sign In vs Sign Out */}
+                {isAuthenticated ? (
+                  <button
                     onClick={() => {
-                      switchProfile(prof.id);
+                      logout();
                       setIsProfileMenuOpen(false);
                     }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
+                      gap: '8px',
                       padding: '8px 10px',
                       borderRadius: '8px',
+                      color: '#ff6b8b',
+                      fontSize: '0.80rem',
+                      fontWeight: 600,
                       cursor: 'pointer',
-                      background: prof.id === activeProfile?.id ? 'rgba(255, 42, 109, 0.25)' : 'rgba(255,255,255,0.04)',
-                      border: prof.id === activeProfile?.id ? '1px solid var(--accent-pink)' : '1px solid transparent'
+                      background: 'rgba(255, 42, 109, 0.1)',
+                      border: '1px solid rgba(255, 42, 109, 0.25)',
+                      transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <img
-                        src={prof.avatarUrl}
-                        alt={prof.name}
-                        style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
-                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#fff' }}>{prof.name}</span>
-                    </div>
-                    {prof.id === activeProfile?.id && <Check size={15} color="var(--accent-pink)" />}
-                  </div>
-                ))}
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      openAuthModal('signin');
+                      setIsProfileMenuOpen(false);
+                    }}
+                    className="btn-primary"
+                    style={{
+                      padding: '8px',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <LogIn size={14} />
+                    <span>Sign In or Register</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Mobile / Small Screen Navigation Drawer (guarantees 100% visibility of all links) */}
+      {/* Mobile / Small Screen Navigation Drawer */}
       {isMobileMenuOpen && (
         <div
           className="glass-heavy animate-fade-in"
@@ -845,6 +1069,73 @@ export const Navbar: React.FC<NavbarProps> = ({
             overflowY: 'auto'
           }}
         >
+          {/* User Account / Auth Card in Mobile Drawer */}
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: '12px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img
+                src={activeProfile?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'}
+                alt="Profile"
+                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-pink)' }}
+              />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff' }}>
+                  {isAuthenticated ? (user?.name || user?.email) : 'Guest Viewer'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {isAuthenticated ? (user?.tier === 'vip_premium' ? '👑 VIP Member' : 'Free Member') : 'Sign in to sync watchlist'}
+                </div>
+              </div>
+            </div>
+
+            {isAuthenticated ? (
+              <button
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 42, 109, 0.15)',
+                  border: '1px solid rgba(255, 42, 109, 0.3)',
+                  color: '#ff6b8b',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Sign Out
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  openAuthModal('signin');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="btn-primary"
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '0.74rem', color: 'var(--accent-pink)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Main Navigation

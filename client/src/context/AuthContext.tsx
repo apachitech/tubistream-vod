@@ -1,12 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserProfile } from '../types';
-import { api } from '../services/api';
+import { api, getAuthToken, clearAuthToken } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   activeProfile: UserProfile | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  isGuest: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (email: string, password: string, name?: string) => Promise<{ success: boolean; message?: string }>;
+  logout: () => Promise<void>;
   switchProfile: (profileId: string) => Promise<void>;
+  addProfile: (name: string, avatarUrl?: string, isKids?: boolean) => Promise<boolean>;
+  deleteProfile: (profileId: string) => Promise<boolean>;
   updateWatchProgress: (titleId: string, progress: number, duration: number) => Promise<void>;
   toggleMyList: (titleId: string) => Promise<boolean>;
   toggleLike: (titleId: string) => Promise<boolean>;
@@ -14,6 +21,10 @@ interface AuthContextType {
   isInMyList: (titleId: string) => boolean;
   isLiked: (titleId: string) => boolean;
   refreshUser: () => Promise<void>;
+  isAuthModalOpen: boolean;
+  authModalTab: 'signin' | 'register';
+  openAuthModal: (tab?: 'signin' | 'register') => void;
+  closeAuthModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +32,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalTab, setAuthModalTab] = useState<'signin' | 'register'>('signin');
 
   const fetchUser = async () => {
     try {
@@ -39,9 +52,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchUser();
   }, []);
 
+  const isAuthenticated = !!(user && !user.isGuest && user.email && !user.email.includes('@tubistream.local'));
+  const isGuest = !isAuthenticated;
+
   const activeProfile = user
     ? user.profiles.find((p) => p.id === user.activeProfileId) || user.profiles[0]
     : null;
+
+  const openAuthModal = (tab: 'signin' | 'register' = 'signin') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await api.login(email, password);
+      if (res.success && res.user) {
+        setUser(res.user);
+        setIsAuthModalOpen(false);
+        return { success: true };
+      }
+      return { success: false, message: res.message || 'Login failed. Please check credentials.' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Connection error. Please try again.' };
+    }
+  };
+
+  const register = async (email: string, password: string, name?: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await api.register(email, password, name);
+      if (res.success && res.user) {
+        setUser(res.user);
+        setIsAuthModalOpen(false);
+        return { success: true };
+      }
+      return { success: false, message: res.message || 'Registration failed.' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Connection error. Please try again.' };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await api.logout();
+      // Load or create guest session
+      const guestRes = await api.createGuest();
+      if (guestRes.success && guestRes.user) {
+        setUser(guestRes.user);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      console.error('Logout failed', err);
+      clearAuthToken();
+      setUser(null);
+    }
+  };
 
   const switchProfile = async (profileId: string) => {
     if (!user) return;
@@ -55,11 +125,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const addProfile = async (name: string, avatarUrl?: string, isKids = false): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const res = await api.addProfile(user.id, name, avatarUrl, isKids);
+      if (res.success && res.user) {
+        setUser(res.user);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to add profile', err);
+      return false;
+    }
+  };
+
+  const deleteProfile = async (profileId: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const res = await api.deleteProfile(user.id, profileId);
+      if (res.success && res.user) {
+        setUser(res.user);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to delete profile', err);
+      return false;
+    }
+  };
+
   const updateWatchProgress = async (titleId: string, progress: number, duration: number) => {
     if (!user) return;
     try {
       await api.updateProgress(user.id, titleId, progress, duration);
-      // Optimistic update
       if (activeProfile) {
         const existing = activeProfile.watchHistory.find((h) => h.titleId === titleId);
         if (existing) {
@@ -142,14 +241,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         activeProfile,
         isLoading,
+        isAuthenticated,
+        isGuest,
+        login,
+        register,
+        logout,
         switchProfile,
+        addProfile,
+        deleteProfile,
         updateWatchProgress,
         toggleMyList,
         toggleLike,
         upgradeToVip,
         isInMyList,
         isLiked,
-        refreshUser: fetchUser
+        refreshUser: fetchUser,
+        isAuthModalOpen,
+        authModalTab,
+        openAuthModal,
+        closeAuthModal
       }}
     >
       {children}

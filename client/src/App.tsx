@@ -19,6 +19,7 @@ import { PinLockModal } from './components/modal/PinLockModal';
 import { MyDownloadsView } from './components/home/MyDownloadsView';
 import { TitleDetailModal } from './components/modal/TitleDetailModal';
 import { SubscriptionModal } from './components/modal/SubscriptionModal';
+import { AuthModal } from './components/modal/AuthModal';
 import { VideoPlayer } from './components/player/VideoPlayer';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Film, Radio, Sparkles, Clock, Flame, Heart, Play } from 'lucide-react';
@@ -339,6 +340,9 @@ export const App: React.FC = () => {
           }
         }}
       />
+
+      {/* Global Authentication & Register Modal */}
+      <AuthModal />
     </div>
   );
 };

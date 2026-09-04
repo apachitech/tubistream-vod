@@ -2,25 +2,124 @@ import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, Anal
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
 
+const TOKEN_KEY = 'tubistream_auth_token';
+const USER_ID_KEY = 'tubistream_user_id';
+
+export const getAuthToken = (): string | null => {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const setAuthToken = (token: string, userId?: string): void => {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+    if (userId) localStorage.setItem(USER_ID_KEY, userId);
+  } catch {}
+};
+
+export const clearAuthToken = (): void => {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_ID_KEY);
+  } catch {}
+};
+
+export const getAuthHeaders = (userId?: string): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const uid = userId || (typeof localStorage !== 'undefined' ? localStorage.getItem(USER_ID_KEY) : null);
+  if (uid) {
+    headers['x-user-id'] = uid;
+  }
+  return headers;
+};
+
 export const api = {
   // Auth & Profile
   async getMe(userId?: string): Promise<{ success: boolean; user: User }> {
     const res = await fetch(`${API_BASE}/auth/me`, {
-      headers: userId ? { 'x-user-id': userId } : {}
+      headers: getAuthHeaders(userId)
     });
     return res.json();
   },
 
+  async login(email: string, password: string): Promise<{ success: boolean; message?: string; user?: User; token?: string }> {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      setAuthToken(data.token, data.user?.id);
+    }
+    return data;
+  },
+
+  async register(email: string, password: string, name?: string): Promise<{ success: boolean; message?: string; user?: User; token?: string }> {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name })
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      setAuthToken(data.token, data.user?.id);
+    }
+    return data;
+  },
+
+  async logout(): Promise<{ success: boolean }> {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+    } catch {}
+    clearAuthToken();
+    return { success: true };
+  },
+
   async createGuest(): Promise<{ success: boolean; user: User }> {
     const res = await fetch(`${API_BASE}/auth/guest`, { method: 'POST' });
-    return res.json();
+    const data = await res.json();
+    if (data.success && data.user) {
+      clearAuthToken();
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(USER_ID_KEY, data.user.id);
+      }
+    }
+    return data;
   },
 
   async switchProfile(userId: string, profileId: string): Promise<{ success: boolean; profile: UserProfile; user: User }> {
     const res = await fetch(`${API_BASE}/auth/profile/switch`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders(userId) },
       body: JSON.stringify({ profileId })
+    });
+    return res.json();
+  },
+
+  async addProfile(userId: string, name: string, avatarUrl?: string, isKids = false): Promise<{ success: boolean; profile?: UserProfile; user?: User; message?: string }> {
+    const res = await fetch(`${API_BASE}/auth/profile/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders(userId) },
+      body: JSON.stringify({ name, avatarUrl, isKids })
+    });
+    return res.json();
+  },
+
+  async deleteProfile(userId: string, profileId: string): Promise<{ success: boolean; user?: User; message?: string }> {
+    const res = await fetch(`${API_BASE}/auth/profile/${profileId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(userId)
     });
     return res.json();
   },
@@ -28,7 +127,7 @@ export const api = {
   async updateProgress(userId: string, titleId: string, progressSeconds: number, durationSeconds: number): Promise<void> {
     await fetch(`${API_BASE}/auth/progress`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders(userId) },
       body: JSON.stringify({ titleId, progressSeconds, durationSeconds })
     });
   },
@@ -36,7 +135,7 @@ export const api = {
   async toggleMyList(userId: string, titleId: string): Promise<{ success: boolean; inList: boolean; myList: string[] }> {
     const res = await fetch(`${API_BASE}/auth/mylist/toggle`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders(userId) },
       body: JSON.stringify({ titleId })
     });
     return res.json();
@@ -45,7 +144,7 @@ export const api = {
   async toggleLike(userId: string, titleId: string): Promise<{ success: boolean; liked: boolean }> {
     const res = await fetch(`${API_BASE}/auth/like/toggle`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders(userId) },
       body: JSON.stringify({ titleId })
     });
     return res.json();
@@ -54,7 +153,7 @@ export const api = {
   async upgradeToVip(userId: string): Promise<{ success: boolean; user: User }> {
     const res = await fetch(`${API_BASE}/auth/upgrade-vip`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': userId }
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders(userId) },
     });
     return res.json();
   },
