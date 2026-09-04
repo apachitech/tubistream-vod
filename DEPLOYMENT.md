@@ -103,8 +103,12 @@ Render can run both the **Node.js Express backend** and the **React Vite fronten
      npm start
      ```
    - **Plan Type**: `Free`
-6. Click **"Advanced"** and add Environment Variables (optional):
+6. Click **"Advanced"** and add Environment Variables:
    - `NODE_ENV` = `production`
+   - `JWT_SECRET` = `(Generate a 64-char key, e.g. using node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")`
+   - `SESSION_EXPIRY` = `30d`
+   - *(Optional PostgreSQL)* `DATABASE_URL` = `(Internal database URL if using Render Postgres - see AUTH.md)`
+   *(See [AUTH.md](./AUTH.md#8-deploying--configuring-authentication-on-render) for the complete authentication setup guide)*
 7. Click **"Create Web Service"**.
 
 Render will automatically install dependencies, compile the React frontend into `client/dist`, compile the Express backend into `server/dist`, and launch the unified server. Your platform will be live at:

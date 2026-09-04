@@ -260,3 +260,100 @@ All routes are prefixed with `/api/auth`:
 | `POST` | `/api/auth/device/code` | Generate TV pairing code | `{ "deviceType": "smart_tv", "deviceName": "LG OLED 4K" }` | `{ "success": true, "pairing": { "code": "TB78X9", ... } }` |
 | `POST` | `/api/auth/device/verify` | Link TV from web account | `{ "code": "TB78X9" }` | `{ "success": true, "message": "Successfully connected!" }` |
 | `GET` | `/api/auth/device/poll/:code` | TV polling endpoint | URL param: `:code` | `{ "success": true, "status": "authorized", "token": "..." }` |
+
+---
+
+## 8. Deploying & Configuring Authentication on Render
+
+When deploying **TubiStream** to [Render](https://render.com), configure authentication according to whether you are running an **All-in-One Fullstack Service** or a **Decoupled Backend Service**.
+
+### Option A: All-in-One Fullstack Web Service (Recommended)
+
+In this architecture, your single Render Web Service builds both the React Vite frontend and the Express backend. The server serves `client/dist` statically alongside `/api/auth/*`.
+
+#### 1. Configure Web Service in Render Dashboard:
+- **Build Command**: `npm run install:all && npm run build`
+- **Start Command**: `npm start`
+- **Root Directory**: *(Leave empty)*
+
+#### 2. Set Environment Variables in Render:
+Navigate to your Web Service in [dashboard.render.com](https://dashboard.render.com) ➔ **Environment** tab ➔ **Add Environment Variable**:
+
+| Variable Name | Recommended Value | Description |
+| :--- | :--- | :--- |
+| `NODE_ENV` | `production` | Enables production optimizations & Express static serving |
+| `JWT_SECRET` | *(Generate a 64-character random string)* | Cryptographic secret used to sign session auth tokens |
+| `SESSION_EXPIRY` | `30d` | Lifetime of issued authentication tokens |
+| `PORT` | `10000` | Render assigns `PORT` dynamically, or defaults to 10000 |
+
+> [!TIP]
+> **Generate a secure `JWT_SECRET` in PowerShell or Bash**:
+> ```bash
+> # In Node.js:
+> node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+> ```
+> Paste the generated 64-character hash into the `JWT_SECRET` field in Render.
+
+---
+
+### Option B: Decoupled Backend on Render + Frontend on GitHub Pages / Vercel
+
+If you deploy your backend API to Render (`https://tubistream-vod.onrender.com`) and your React client to **GitHub Pages** or **Vercel**:
+
+#### 1. On Render (Backend Web Service):
+In Render ➔ **Environment**, configure:
+- `NODE_ENV` = `production`
+- `JWT_SECRET` = `<your-secure-key>`
+- `CORS_ORIGIN` = `https://your-username.github.io` *(or `*` for universal access)*
+
+#### 2. On GitHub Pages / Vercel (Frontend Client):
+In your frontend host's environment settings:
+- **Variable Name**: `VITE_API_URL`
+- **Variable Value**: `https://tubistream-vod.onrender.com/api`
+
+This ensures that the client's `AuthContext` and `api.ts` dispatch `/auth/login`, `/auth/register`, and `/auth/me` requests directly to your live Render backend URL.
+
+---
+
+### Option C: Adding Persistent Database Storage (Render Free PostgreSQL)
+
+By default, in-memory accounts and tokens reset when Render's free tier service spins down after 15 minutes of inactivity. To persist user registrations, watchlists, and Smart TV codes permanently:
+
+1. In Render Dashboard, click **"New +"** (top right) ➔ **"PostgreSQL"**.
+2. Settings:
+   - **Name**: `tubistream-postgres`
+   - **Database**: `tubistream`
+   - **Plan**: `Free`
+3. Once provisioned, copy the **Internal Database URL** (e.g. `postgres://tubistream_user:pass@dpg-xxx-a:5432/tubistream`).
+4. Go back to your **TubiStream Web Service** ➔ **Environment** tab.
+5. Click **"Add Environment Variable"**:
+   - **Key**: `DATABASE_URL`
+   - **Value**: *(Paste the Internal Database URL)*
+6. TubiStream will automatically connect to your Render PostgreSQL instance.
+
+---
+
+### Verification: Testing Auth on Render
+
+After deployment, verify that authentication is operational:
+
+1. **API Health & Auth Endpoint Check**:
+   ```bash
+   curl -X GET https://your-app-name.onrender.com/api/health
+   ```
+   *Should return `{"status": "healthy", ...}`.*
+
+2. **Test User Login**:
+   ```bash
+   curl -X POST https://your-app-name.onrender.com/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email": "viewer@tubistream.com", "password": "password123"}'
+   ```
+   *Should return HTTP 200 with an auth token and user profile data.*
+
+3. **In the Web App UI**:
+   - Open your Render URL `https://your-app-name.onrender.com`.
+   - Click **"Sign In"** in the top navbar.
+   - Click the **"Viewer Alex (Free)"** 1-click button or enter credentials.
+   - Confirm the navbar shows the user avatar and active profile name!
+
