@@ -147,12 +147,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           maxWidth: '100%',
           width: '100%',
           margin: '0 auto',
-          padding: '0 18px',
+          padding: '0 20px',
           height: '62px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
+          gap: '20px',
           boxSizing: 'border-box'
         }}
       >
@@ -527,12 +527,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* Right: Search, VIP, Activate TV, Admin, Authentication & Profile */}
+        {/* Right: Search, Activate TV, VIP, Admin, Authentication & Profile */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '12px',
             flexShrink: 0
           }}
         >
@@ -544,7 +544,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 alignItems: 'center',
                 background: 'rgba(255,255,255,0.07)',
                 borderRadius: 'var(--radius-full)',
-                padding: isSearchOpen ? '5px 10px' : (windowWidth >= 1350 ? '5px 10px' : '6px 8px'),
+                padding: isSearchOpen ? '5px 12px' : (windowWidth >= 1350 ? '5px 12px' : '6px 9px'),
                 border: isSearchOpen ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.14)',
                 width: isSearchOpen
                   ? (windowWidth < 768 ? '180px' : '220px')
@@ -567,7 +567,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 size={15}
                 color={isSearchOpen ? 'var(--accent-pink)' : '#e2e8f0'}
                 style={{
-                  marginRight: (isSearchOpen || windowWidth >= 1350) ? '6px' : 0,
+                  marginRight: (isSearchOpen || windowWidth >= 1350) ? '8px' : 0,
                   flexShrink: 0
                 }}
               />
@@ -698,28 +698,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Activate TV Button */}
+          {/* Activate TV Button with dedicated spacing and hover effect */}
           <button
             onClick={() => setCurrentView('activate-tv')}
             style={{
-              fontSize: '0.78rem',
+              fontSize: '0.82rem',
               fontWeight: 600,
-              padding: '6px 10px',
+              padding: '0 12px',
               height: '36px',
-              borderRadius: '7px',
-              background: currentView === 'activate-tv' ? 'rgba(5, 217, 232, 0.2)' : 'rgba(255,255,255,0.06)',
-              border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.14)',
+              borderRadius: '8px',
+              background: currentView === 'activate-tv' ? 'rgba(5, 217, 232, 0.22)' : 'rgba(255, 255, 255, 0.05)',
+              border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.12)',
               color: '#fff',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '6px',
               whiteSpace: 'nowrap',
               flexShrink: 0,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: currentView === 'activate-tv' ? '0 0 14px rgba(5, 217, 232, 0.35)' : 'none'
+            }}
+            onMouseEnter={(e) => {
+              if (currentView !== 'activate-tv') {
+                e.currentTarget.style.background = 'rgba(5, 217, 232, 0.14)';
+                e.currentTarget.style.borderColor = 'rgba(5, 217, 232, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentView !== 'activate-tv') {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+              }
             }}
             title="Link & Activate TV App"
           >
-            <Tv size={13} color="var(--accent-cyan)" />
+            <Tv size={14} color="var(--accent-cyan)" />
             <span>{windowWidth < 1250 ? 'TV' : 'Activate TV'}</span>
           </button>
 
