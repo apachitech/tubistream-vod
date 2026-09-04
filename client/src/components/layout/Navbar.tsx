@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDeviceMode } from '../../context/DeviceModeContext';
 import {
-  Search, Tv, Crown, Film, Layers, LayoutDashboard, X, Check, Mic, Users, Download, Menu, ChevronDown
+  Search, Tv, Crown, Film, Layers, LayoutDashboard, X, Check, Mic, Users, Download, Menu, ChevronDown, Heart, MoreHorizontal, Sparkles
 } from 'lucide-react';
 import { Title } from '../../types';
 import { api } from '../../services/api';
@@ -21,29 +21,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTitle
 }) => {
   const { user, activeProfile, switchProfile } = useAuth();
-  const { deviceMode, setDeviceMode } = useDeviceMode();
+  const { deviceMode } = useDeviceMode();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Title[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [genres, setGenres] = useState<string[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440);
 
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
+      setIsScrolled(window.scrollY > 20);
     };
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= 850) {
         setIsMobileMenuOpen(false);
       }
     };
@@ -93,12 +96,16 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target as Node)) {
         setIsCategoryMenuOpen(false);
       }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isCompactScreen = windowWidth < 1120 || deviceMode === 'mobile';
+  const isMobileScreen = windowWidth < 850 || deviceMode === 'mobile';
+  const isCompactDesktop = windowWidth < 1220 && !isMobileScreen;
 
   return (
     <header
@@ -108,9 +115,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         top: '33px', // below device mode banner
         zIndex: 1000,
         transition: 'all 0.3s ease',
-        background: isScrolled ? 'rgba(9, 10, 15, 0.96)' : 'rgba(16, 18, 26, 0.88)',
-        borderBottom: isScrolled ? '1px solid rgba(255, 42, 109, 0.2)' : '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: isScrolled ? '0 10px 30px rgba(0,0,0,0.85)' : 'none'
+        background: isScrolled ? 'rgba(9, 10, 15, 0.97)' : 'rgba(16, 18, 26, 0.92)',
+        borderBottom: isScrolled ? '1px solid rgba(255, 42, 109, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: isScrolled ? '0 10px 30px rgba(0,0,0,0.85)' : '0 4px 20px rgba(0,0,0,0.4)'
       }}
     >
       <div
@@ -132,25 +139,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '14px',
+            gap: '12px',
             minWidth: 0,
             flex: '1 1 auto'
           }}
         >
-          {/* Mobile Menu Toggle Button (shown on compact/mobile screens) */}
-          {isCompactScreen && (
+          {/* Mobile Hamburger Toggle Button (shown on mobile & compact views) */}
+          {isMobileScreen && (
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '36px',
-                height: '36px',
+                width: '38px',
+                height: '38px',
                 borderRadius: '8px',
-                background: isMobileMenuOpen ? 'rgba(255, 42, 109, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-                border: isMobileMenuOpen ? '1px solid var(--accent-pink)' : '1px solid rgba(255, 255, 255, 0.1)',
-                color: isMobileMenuOpen ? 'var(--accent-pink)' : '#fff',
+                background: isMobileMenuOpen ? 'rgba(255, 42, 109, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                border: isMobileMenuOpen ? '1px solid var(--accent-pink)' : '1px solid rgba(255, 255, 255, 0.15)',
+                color: isMobileMenuOpen ? 'var(--accent-pink)' : '#ffffff',
                 flexShrink: 0
               }}
               title="Toggle Navigation Menu"
@@ -220,238 +227,267 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Desktop Nav Links (Smooth horizontal scrollable container with hidden scrollbar) */}
-          <nav
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-              flex: '1 1 auto',
-              minWidth: 0,
-              padding: '2px 0'
-            }}
-          >
-            {/* 1. Home */}
-            <button
-              onClick={() => setCurrentView('home')}
+          {/* Desktop & Tablet Navigation Bar */}
+          {!isMobileScreen && (
+            <nav
               style={{
-                padding: '6px 10px',
-                borderRadius: '7px',
-                fontWeight: 600,
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                color: currentView === 'home' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'home' ? 'rgba(255, 42, 109, 0.15)' : 'transparent',
-                border: currentView === 'home' ? '1px solid rgba(255, 42, 109, 0.35)' : '1px solid transparent'
-              }}
-            >
-              Home
-            </button>
-
-            {/* 2. Movies */}
-            <button
-              onClick={() => setCurrentView('movies')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '7px',
-                fontWeight: 600,
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                color: currentView === 'movies' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'movies' ? 'rgba(255, 42, 109, 0.15)' : 'transparent',
-                border: currentView === 'movies' ? '1px solid rgba(255, 42, 109, 0.35)' : '1px solid transparent'
-              }}
-            >
-              Movies
-            </button>
-
-            {/* 3. TV Shows */}
-            <button
-              onClick={() => setCurrentView('series')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '7px',
-                fontWeight: 600,
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                color: currentView === 'series' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'series' ? 'rgba(255, 42, 109, 0.15)' : 'transparent',
-                border: currentView === 'series' ? '1px solid rgba(255, 42, 109, 0.35)' : '1px solid transparent'
-              }}
-            >
-              TV Shows
-            </button>
-
-            {/* 4. Live FAST TV */}
-            <button
-              onClick={() => setCurrentView('live-fast')}
-              style={{
-                padding: '6px 11px',
-                borderRadius: '7px',
-                fontWeight: 700,
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                color: currentView === 'live-fast' ? '#00f076' : '#fff',
-                background: currentView === 'live-fast' ? 'rgba(0, 240, 118, 0.18)' : 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(0, 240, 118, 0.35)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '5px',
+                flexWrap: 'nowrap',
+                overflow: 'visible',
+                minWidth: 0,
+                padding: '2px 0'
               }}
             >
-              <span
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  background: '#00f076',
-                  boxShadow: '0 0 8px #00f076',
-                  display: 'inline-block'
-                }}
-              />
-              Live FAST TV
-            </button>
-
-            {/* 5. Categories Dropdown */}
-            <div ref={categoryMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+              {/* 1. Home */}
               <button
-                onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '7px',
-                  fontWeight: 600,
-                  fontSize: '0.86rem',
-                  whiteSpace: 'nowrap',
-                  color: currentView.startsWith('genre-') ? '#fff' : 'var(--text-secondary)',
-                  background: currentView.startsWith('genre-') ? 'rgba(255, 42, 109, 0.15)' : 'transparent',
-                  border: currentView.startsWith('genre-') ? '1px solid rgba(255, 42, 109, 0.35)' : '1px solid transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
+                onClick={() => setCurrentView('home')}
+                className={`nav-link-item ${currentView === 'home' ? 'active' : ''}`}
               >
-                <Layers size={15} />
-                Categories
-                <ChevronDown size={13} style={{ opacity: 0.7 }} />
+                Home
               </button>
 
-              {isCategoryMenuOpen && (
-                <div
-                  className="glass-heavy animate-fade-in"
+              {/* 2. Movies */}
+              <button
+                onClick={() => setCurrentView('movies')}
+                className={`nav-link-item ${currentView === 'movies' ? 'active' : ''}`}
+              >
+                Movies
+              </button>
+
+              {/* 3. TV Shows */}
+              <button
+                onClick={() => setCurrentView('series')}
+                className={`nav-link-item ${currentView === 'series' ? 'active' : ''}`}
+              >
+                TV Shows
+              </button>
+
+              {/* 4. Live FAST TV */}
+              <button
+                onClick={() => setCurrentView('live-fast')}
+                className={`nav-link-item nav-link-live ${currentView === 'live-fast' ? 'active' : ''}`}
+              >
+                <span
                   style={{
-                    position: 'absolute',
-                    top: '42px',
-                    left: 0,
-                    width: '300px',
-                    padding: '12px',
-                    borderRadius: '12px',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.85)',
-                    zIndex: 1005,
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '6px'
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: '#00f076',
+                    boxShadow: '0 0 8px #00f076',
+                    display: 'inline-block'
                   }}
-                >
-                  {genres.map((genre) => (
+                />
+                Live FAST TV
+              </button>
+
+              {/* In Full Desktop View (>= 1220px): Render all remaining links directly */}
+              {!isCompactDesktop && (
+                <>
+                  {/* 5. Categories Dropdown */}
+                  <div ref={categoryMenuRef} style={{ position: 'relative' }}>
                     <button
-                      key={genre}
-                      onClick={() => {
-                        setIsCategoryMenuOpen(false);
-                        setCurrentView(`genre-${genre}`);
-                      }}
+                      onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+                      className={`nav-link-item ${currentView.startsWith('genre-') ? 'active' : ''}`}
+                    >
+                      <Layers size={14} />
+                      Categories
+                      <ChevronDown size={13} style={{ opacity: 0.8 }} />
+                    </button>
+
+                    {isCategoryMenuOpen && (
+                      <div
+                        className="glass-heavy animate-fade-in"
+                        style={{
+                          position: 'absolute',
+                          top: '44px',
+                          left: 0,
+                          width: '320px',
+                          padding: '12px',
+                          borderRadius: '12px',
+                          boxShadow: '0 20px 50px rgba(0,0,0,0.92)',
+                          border: '1px solid rgba(255, 42, 109, 0.3)',
+                          zIndex: 1005,
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '6px'
+                        }}
+                      >
+                        {genres.map((genre) => (
+                          <button
+                            key={genre}
+                            onClick={() => {
+                              setIsCategoryMenuOpen(false);
+                              setCurrentView(`genre-${genre}`);
+                            }}
+                            style={{
+                              padding: '8px 12px',
+                              textAlign: 'left',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              borderRadius: '7px',
+                              color: currentView === `genre-${genre}` ? '#fff' : '#e2e8f0',
+                              background: currentView === `genre-${genre}` ? 'rgba(255, 42, 109, 0.35)' : 'rgba(255,255,255,0.04)',
+                              border: currentView === `genre-${genre}` ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.06)'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = '#fff';
+                              e.currentTarget.style.background = 'rgba(255, 42, 109, 0.25)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = currentView === `genre-${genre}` ? '#fff' : '#e2e8f0';
+                              e.currentTarget.style.background = currentView === `genre-${genre}` ? 'rgba(255, 42, 109, 0.35)' : 'rgba(255,255,255,0.04)';
+                            }}
+                          >
+                            {genre}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 6. My List */}
+                  <button
+                    onClick={() => setCurrentView('mylist')}
+                    className={`nav-link-item ${currentView === 'mylist' ? 'active' : ''}`}
+                  >
+                    <Heart size={14} color="var(--accent-pink)" />
+                    My List
+                  </button>
+
+                  {/* 7. Watch Party */}
+                  <button
+                    onClick={() => setCurrentView('party')}
+                    className={`nav-link-item nav-link-party ${currentView === 'party' ? 'active' : ''}`}
+                  >
+                    <Users size={14} />
+                    Party
+                  </button>
+
+                  {/* 8. Downloads */}
+                  <button
+                    onClick={() => setCurrentView('downloads')}
+                    className={`nav-link-item nav-link-downloads ${currentView === 'downloads' ? 'active' : ''}`}
+                  >
+                    <Download size={14} />
+                    Downloads
+                  </button>
+                </>
+              )}
+
+              {/* In Compact Desktop View (< 1220px): Render More Dropdown to prevent clipping */}
+              {isCompactDesktop && (
+                <div ref={moreMenuRef} style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                    className={`nav-link-item ${
+                      ['mylist', 'party', 'downloads'].includes(currentView) || currentView.startsWith('genre-')
+                        ? 'active'
+                        : ''
+                    }`}
+                    style={{
+                      background: isMoreMenuOpen ? 'rgba(255, 42, 109, 0.25)' : undefined,
+                      borderColor: isMoreMenuOpen ? 'var(--accent-pink)' : undefined
+                    }}
+                  >
+                    <MoreHorizontal size={15} />
+                    More
+                    <ChevronDown size={13} style={{ opacity: 0.8 }} />
+                  </button>
+
+                  {isMoreMenuOpen && (
+                    <div
+                      className="glass-heavy animate-fade-in"
                       style={{
-                        padding: '7px 10px',
-                        textAlign: 'left',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        borderRadius: '6px',
-                        color: currentView === `genre-${genre}` ? '#fff' : 'var(--text-secondary)',
-                        background: currentView === `genre-${genre}` ? 'rgba(255, 42, 109, 0.25)' : 'rgba(255,255,255,0.03)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = '#fff';
-                        e.currentTarget.style.background = 'rgba(255, 42, 109, 0.2)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = currentView === `genre-${genre}` ? '#fff' : 'var(--text-secondary)';
-                        e.currentTarget.style.background = currentView === `genre-${genre}` ? 'rgba(255, 42, 109, 0.25)' : 'rgba(255,255,255,0.03)';
+                        position: 'absolute',
+                        top: '44px',
+                        left: 0,
+                        width: '240px',
+                        padding: '10px',
+                        borderRadius: '12px',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.95)',
+                        border: '1px solid rgba(255, 42, 109, 0.3)',
+                        zIndex: 1005,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
                       }}
                     >
-                      {genre}
-                    </button>
-                  ))}
+                      {/* My List */}
+                      <button
+                        onClick={() => {
+                          setCurrentView('mylist');
+                          setIsMoreMenuOpen(false);
+                        }}
+                        className={`nav-link-item ${currentView === 'mylist' ? 'active' : ''}`}
+                        style={{ width: '100%', justifyContent: 'flex-start' }}
+                      >
+                        <Heart size={15} color="var(--accent-pink)" />
+                        My Watchlist
+                      </button>
+
+                      {/* Watch Party */}
+                      <button
+                        onClick={() => {
+                          setCurrentView('party');
+                          setIsMoreMenuOpen(false);
+                        }}
+                        className={`nav-link-item nav-link-party ${currentView === 'party' ? 'active' : ''}`}
+                        style={{ width: '100%', justifyContent: 'flex-start' }}
+                      >
+                        <Users size={15} />
+                        Watch Party
+                      </button>
+
+                      {/* Downloads */}
+                      <button
+                        onClick={() => {
+                          setCurrentView('downloads');
+                          setIsMoreMenuOpen(false);
+                        }}
+                        className={`nav-link-item nav-link-downloads ${currentView === 'downloads' ? 'active' : ''}`}
+                        style={{ width: '100%', justifyContent: 'flex-start' }}
+                      >
+                        <Download size={15} />
+                        My Downloads
+                      </button>
+
+                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
+
+                      {/* Categories Accordion / Preview */}
+                      <div style={{ padding: '4px 8px', fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                        Browse Categories
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', maxHeight: '180px', overflowY: 'auto' }}>
+                        {genres.slice(0, 10).map((genre) => (
+                          <button
+                            key={genre}
+                            onClick={() => {
+                              setCurrentView(`genre-${genre}`);
+                              setIsMoreMenuOpen(false);
+                            }}
+                            style={{
+                              padding: '6px 8px',
+                              textAlign: 'left',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              borderRadius: '6px',
+                              color: currentView === `genre-${genre}` ? '#fff' : '#cbd5e1',
+                              background: currentView === `genre-${genre}` ? 'rgba(255, 42, 109, 0.35)' : 'rgba(255,255,255,0.04)',
+                              border: '1px solid rgba(255,255,255,0.06)'
+                            }}
+                          >
+                            {genre}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-
-            {/* 6. My List */}
-            <button
-              onClick={() => setCurrentView('mylist')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '7px',
-                fontWeight: 600,
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                color: currentView === 'mylist' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'mylist' ? 'rgba(255, 42, 109, 0.15)' : 'transparent',
-                border: currentView === 'mylist' ? '1px solid rgba(255, 42, 109, 0.35)' : '1px solid transparent'
-              }}
-            >
-              My List
-            </button>
-
-            {/* 7. Watch Party */}
-            <button
-              onClick={() => setCurrentView('party')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '7px',
-                fontWeight: 600,
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                color: currentView === 'party' ? '#ff2a6d' : 'var(--text-secondary)',
-                background: currentView === 'party' ? 'rgba(255, 42, 109, 0.15)' : 'transparent',
-                border: currentView === 'party' ? '1px solid rgba(255, 42, 109, 0.35)' : '1px solid transparent',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Users size={15} /> Party
-            </button>
-
-            {/* 8. Downloads */}
-            <button
-              onClick={() => setCurrentView('downloads')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '7px',
-                fontWeight: 600,
-                fontSize: '0.86rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                color: currentView === 'downloads' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                background: currentView === 'downloads' ? 'rgba(5, 217, 232, 0.15)' : 'transparent',
-                border: currentView === 'downloads' ? '1px solid rgba(5, 217, 232, 0.35)' : '1px solid transparent',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-            >
-              <Download size={15} /> Downloads
-            </button>
-          </nav>
+            </nav>
+          )}
         </div>
 
         {/* Right: Search, VIP, Activate TV, Admin, Profile */}
@@ -463,7 +499,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             flexShrink: 0
           }}
         >
-          {/* Compact Search Box with Speech Recognition */}
+          {/* Smart Search Button / Expanding Box */}
           <div ref={searchRef} style={{ position: 'relative' }}>
             <div
               style={{
@@ -471,57 +507,91 @@ export const Navbar: React.FC<NavbarProps> = ({
                 alignItems: 'center',
                 background: 'rgba(255,255,255,0.07)',
                 borderRadius: 'var(--radius-full)',
-                padding: '5px 10px',
-                border: isSearchOpen ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.12)',
-                width: isSearchOpen ? (windowWidth < 768 ? '160px' : '220px') : (windowWidth < 1280 ? '120px' : '150px'),
-                transition: 'all 0.25s ease'
+                padding: isSearchOpen ? '5px 10px' : (windowWidth >= 1350 ? '5px 10px' : '6px 8px'),
+                border: isSearchOpen ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.14)',
+                width: isSearchOpen
+                  ? (windowWidth < 768 ? '180px' : '220px')
+                  : (windowWidth >= 1350 ? '135px' : '36px'),
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                cursor: !isSearchOpen && windowWidth < 1350 ? 'pointer' : 'default',
+                boxShadow: isSearchOpen ? '0 0 14px rgba(255, 42, 109, 0.25)' : 'none'
               }}
-            >
-              <Search size={14} color="var(--text-muted)" style={{ marginRight: '6px', flexShrink: 0 }} />
-              <input
-                type="text"
-                placeholder={windowWidth < 1280 ? "Search..." : "Search movies, AI..."}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
+              onClick={() => {
+                if (!isSearchOpen && windowWidth < 1350) {
                   setIsSearchOpen(true);
-                }}
-                onFocus={() => setIsSearchOpen(true)}
+                  setTimeout(() => searchInputRef.current?.focus(), 50);
+                }
+              }}
+              title="Search movies, TV shows, and genres"
+            >
+              <Search
+                size={15}
+                color={isSearchOpen ? 'var(--accent-pink)' : '#e2e8f0'}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#fff',
-                  fontSize: '0.80rem',
-                  width: '100%',
-                  minWidth: 0
+                  marginRight: (isSearchOpen || windowWidth >= 1350) ? '6px' : 0,
+                  flexShrink: 0
                 }}
               />
-              {/* Voice Search Mic */}
-              <button
-                onClick={() => {
-                  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-                    const recognition = new SpeechRec();
-                    recognition.onresult = (event: any) => {
-                      const transcript = event.results[0][0].transcript;
-                      setSearchQuery(transcript);
-                      setIsSearchOpen(true);
-                    };
-                    recognition.start();
-                  } else {
-                    setSearchQuery('action movies with robots');
+
+              {(isSearchOpen || windowWidth >= 1350) && (
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search movies, AI..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
                     setIsSearchOpen(true);
-                  }
-                }}
-                style={{ color: 'var(--accent-pink)', padding: '1px 3px', flexShrink: 0 }}
-                title="Voice Search"
-                aria-label="Voice Search"
-              >
-                <Mic size={14} />
-              </button>
+                  }}
+                  onFocus={() => setIsSearchOpen(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    outline: 'none',
+                    color: '#fff',
+                    fontSize: '0.82rem',
+                    width: '100%',
+                    minWidth: 0
+                  }}
+                />
+              )}
+
+              {/* Voice Search Mic */}
+              {(isSearchOpen || windowWidth >= 1350) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                      const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                      const recognition = new SpeechRec();
+                      recognition.onresult = (event: any) => {
+                        const transcript = event.results[0][0].transcript;
+                        setSearchQuery(transcript);
+                        setIsSearchOpen(true);
+                      };
+                      recognition.start();
+                    } else {
+                      setSearchQuery('action movies with robots');
+                      setIsSearchOpen(true);
+                    }
+                  }}
+                  style={{ color: 'var(--accent-pink)', padding: '1px 3px', flexShrink: 0 }}
+                  title="Voice Search"
+                  aria-label="Voice Search"
+                >
+                  <Mic size={14} />
+                </button>
+              )}
+
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} style={{ color: 'var(--text-muted)', flexShrink: 0 }} aria-label="Clear search">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSearchQuery('');
+                  }}
+                  style={{ color: '#cbd5e1', flexShrink: 0 }}
+                  aria-label="Clear search"
+                >
                   <X size={13} />
                 </button>
               )}
@@ -533,12 +603,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="glass-heavy animate-fade-in"
                 style={{
                   position: 'absolute',
-                  top: '42px',
+                  top: '44px',
                   right: 0,
                   width: windowWidth < 480 ? '280px' : '340px',
                   padding: '10px',
                   borderRadius: '12px',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.9)',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.95)',
+                  border: '1px solid rgba(255, 42, 109, 0.3)',
                   zIndex: 1005,
                   display: 'flex',
                   flexDirection: 'column',
@@ -578,7 +649,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div style={{ fontWeight: 700, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {title.title}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '2px' }}>
                         {title.releaseYear} • {title.rating} • {title.genres.slice(0, 2).join(', ')}
                       </div>
                     </div>
@@ -594,21 +665,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             style={{
               fontSize: '0.78rem',
               fontWeight: 600,
-              padding: '5px 9px',
-              borderRadius: '6px',
+              padding: '6px 10px',
+              borderRadius: '7px',
               background: currentView === 'activate-tv' ? 'rgba(5, 217, 232, 0.2)' : 'rgba(255,255,255,0.06)',
-              border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.12)',
+              border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.14)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
               whiteSpace: 'nowrap',
-              flexShrink: 0
+              flexShrink: 0,
+              cursor: 'pointer'
             }}
             title="Link & Activate TV App"
           >
             <Tv size={13} color="var(--accent-cyan)" />
-            <span>{windowWidth < 1200 ? 'TV' : 'Activate TV'}</span>
+            <span>{windowWidth < 1250 ? 'TV' : 'Activate TV'}</span>
           </button>
 
           {/* VIP Premium Upgrade Button */}
@@ -631,7 +703,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onOpenSubscriptionModal}
               className="btn-primary"
               style={{
-                padding: '5px 10px',
+                padding: '6px 11px',
                 fontSize: '0.78rem',
                 gap: '5px',
                 whiteSpace: 'nowrap',
@@ -647,9 +719,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={() => setCurrentView('admin')}
             style={{
-              padding: '5px 9px',
-              borderRadius: '6px',
-              background: currentView === 'admin' ? '#9d4edd' : 'rgba(157, 78, 221, 0.16)',
+              padding: '6px 10px',
+              borderRadius: '7px',
+              background: currentView === 'admin' ? '#9d4edd' : 'rgba(157, 78, 221, 0.18)',
               border: '1px solid rgba(157, 78, 221, 0.45)',
               color: '#fff',
               display: 'flex',
@@ -658,12 +730,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               fontSize: '0.78rem',
               fontWeight: 600,
               whiteSpace: 'nowrap',
-              flexShrink: 0
+              flexShrink: 0,
+              cursor: 'pointer'
             }}
             title="Admin CMS & Ad Engine Studio"
           >
             <LayoutDashboard size={13} />
-            <span>{windowWidth < 1200 ? 'Admin' : 'Admin CMS'}</span>
+            <span>{windowWidth < 1250 ? 'Admin' : 'Admin CMS'}</span>
           </button>
 
           {/* Profile Switcher Menu */}
@@ -677,7 +750,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 cursor: 'pointer',
                 padding: '2px',
                 borderRadius: 'var(--radius-full)',
-                background: 'rgba(255,255,255,0.06)'
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)'
               }}
               title={`Active Profile: ${activeProfile?.name || 'User'}`}
             >
@@ -699,12 +773,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="glass-heavy animate-fade-in"
                 style={{
                   position: 'absolute',
-                  top: '42px',
+                  top: '44px',
                   right: 0,
                   width: '230px',
                   padding: '14px',
                   borderRadius: '12px',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.9)',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.95)',
+                  border: '1px solid rgba(255, 42, 109, 0.3)',
                   zIndex: 1005,
                   display: 'flex',
                   flexDirection: 'column',
@@ -725,10 +800,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '7px 9px',
+                      padding: '8px 10px',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      background: prof.id === activeProfile?.id ? 'rgba(255, 42, 109, 0.2)' : 'rgba(255,255,255,0.03)'
+                      background: prof.id === activeProfile?.id ? 'rgba(255, 42, 109, 0.25)' : 'rgba(255,255,255,0.04)',
+                      border: prof.id === activeProfile?.id ? '1px solid var(--accent-pink)' : '1px solid transparent'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -737,7 +813,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         alt={prof.name}
                         style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
                       />
-                      <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>{prof.name}</span>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#fff' }}>{prof.name}</span>
                     </div>
                     {prof.id === activeProfile?.id && <Check size={15} color="var(--accent-pink)" />}
                   </div>
@@ -748,7 +824,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile/Compact Drawer Menu (shows all links when hamburger is open) */}
+      {/* Mobile / Small Screen Navigation Drawer (guarantees 100% visibility of all links) */}
       {isMobileMenuOpen && (
         <div
           className="glass-heavy animate-fade-in"
@@ -757,171 +833,159 @@ export const Navbar: React.FC<NavbarProps> = ({
             top: '62px',
             left: 0,
             right: 0,
-            padding: '16px 20px 24px',
+            padding: '18px 20px 28px',
             background: 'rgba(9, 10, 15, 0.98)',
-            borderBottom: '1px solid rgba(255, 42, 109, 0.3)',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.9)',
+            borderBottom: '2px solid rgba(255, 42, 109, 0.4)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.95)',
             zIndex: 999,
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '14px',
+            maxHeight: 'calc(100vh - 95px)',
+            overflowY: 'auto'
           }}
         >
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-            Navigation
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--accent-pink)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Main Navigation
+            </span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              8 Destinations
+            </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
+
+          {/* Primary Nav Links Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))', gap: '8px' }}>
             <button
               onClick={() => { setCurrentView('home'); setIsMobileMenuOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                color: currentView === 'home' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'home' ? 'rgba(255, 42, 109, 0.2)' : 'rgba(255,255,255,0.03)',
-                border: currentView === 'home' ? '1px solid var(--accent-pink)' : '1px solid transparent'
-              }}
+              className={`nav-link-item ${currentView === 'home' ? 'active' : ''}`}
+              style={{ padding: '10px 14px', justifyContent: 'flex-start' }}
             >
+              <Film size={15} />
               Home
             </button>
 
             <button
               onClick={() => { setCurrentView('movies'); setIsMobileMenuOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                color: currentView === 'movies' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'movies' ? 'rgba(255, 42, 109, 0.2)' : 'rgba(255,255,255,0.03)',
-                border: currentView === 'movies' ? '1px solid var(--accent-pink)' : '1px solid transparent'
-              }}
+              className={`nav-link-item ${currentView === 'movies' ? 'active' : ''}`}
+              style={{ padding: '10px 14px', justifyContent: 'flex-start' }}
             >
+              <Film size={15} />
               Movies
             </button>
 
             <button
               onClick={() => { setCurrentView('series'); setIsMobileMenuOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                color: currentView === 'series' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'series' ? 'rgba(255, 42, 109, 0.2)' : 'rgba(255,255,255,0.03)',
-                border: currentView === 'series' ? '1px solid var(--accent-pink)' : '1px solid transparent'
-              }}
+              className={`nav-link-item ${currentView === 'series' ? 'active' : ''}`}
+              style={{ padding: '10px 14px', justifyContent: 'flex-start' }}
             >
+              <Tv size={15} />
               TV Shows
             </button>
 
             <button
               onClick={() => { setCurrentView('live-fast'); setIsMobileMenuOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                fontWeight: 700,
-                fontSize: '0.88rem',
-                color: '#00f076',
-                background: currentView === 'live-fast' ? 'rgba(0, 240, 118, 0.2)' : 'rgba(0, 240, 118, 0.08)',
-                border: '1px solid rgba(0, 240, 118, 0.35)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className={`nav-link-item nav-link-live ${currentView === 'live-fast' ? 'active' : ''}`}
+              style={{ padding: '10px 14px', justifyContent: 'flex-start' }}
             >
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00f076' }} />
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#00f076', boxShadow: '0 0 8px #00f076' }} />
               Live FAST TV
             </button>
 
             <button
               onClick={() => { setCurrentView('mylist'); setIsMobileMenuOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                color: currentView === 'mylist' ? '#fff' : 'var(--text-secondary)',
-                background: currentView === 'mylist' ? 'rgba(255, 42, 109, 0.2)' : 'rgba(255,255,255,0.03)',
-                border: currentView === 'mylist' ? '1px solid var(--accent-pink)' : '1px solid transparent'
-              }}
+              className={`nav-link-item ${currentView === 'mylist' ? 'active' : ''}`}
+              style={{ padding: '10px 14px', justifyContent: 'flex-start' }}
             >
+              <Heart size={15} color="var(--accent-pink)" />
               My List
             </button>
 
             <button
               onClick={() => { setCurrentView('party'); setIsMobileMenuOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                color: currentView === 'party' ? '#ff2a6d' : 'var(--text-secondary)',
-                background: currentView === 'party' ? 'rgba(255, 42, 109, 0.2)' : 'rgba(255,255,255,0.03)',
-                border: currentView === 'party' ? '1px solid var(--accent-pink)' : '1px solid transparent',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className={`nav-link-item nav-link-party ${currentView === 'party' ? 'active' : ''}`}
+              style={{ padding: '10px 14px', justifyContent: 'flex-start' }}
             >
-              <Users size={15} /> Party
+              <Users size={15} />
+              Watch Party
             </button>
 
             <button
               onClick={() => { setCurrentView('downloads'); setIsMobileMenuOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textAlign: 'left',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                color: currentView === 'downloads' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                background: currentView === 'downloads' ? 'rgba(5, 217, 232, 0.2)' : 'rgba(255,255,255,0.03)',
-                border: currentView === 'downloads' ? '1px solid var(--accent-cyan)' : '1px solid transparent',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className={`nav-link-item nav-link-downloads ${currentView === 'downloads' ? 'active' : ''}`}
+              style={{ padding: '10px 14px', justifyContent: 'flex-start' }}
             >
-              <Download size={15} /> Downloads
+              <Download size={15} />
+              Downloads
+            </button>
+
+            <button
+              onClick={() => { setCurrentView('activate-tv'); setIsMobileMenuOpen(false); }}
+              className="nav-link-item"
+              style={{ padding: '10px 14px', justifyContent: 'flex-start', color: 'var(--accent-cyan)' }}
+            >
+              <Tv size={15} />
+              Activate TV
             </button>
           </div>
 
-          <div style={{ marginTop: '8px', fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-            Categories
+          {/* Categories Section */}
+          <div style={{ marginTop: '8px' }}>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>
+              Categories & Genres
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {genres.map((genre) => (
+                <button
+                  key={genre}
+                  onClick={() => {
+                    setCurrentView(`genre-${genre}`);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  style={{
+                    padding: '6px 11px',
+                    borderRadius: '7px',
+                    fontSize: '0.80rem',
+                    fontWeight: 600,
+                    color: currentView === `genre-${genre}` ? '#fff' : '#cbd5e1',
+                    background: currentView === `genre-${genre}` ? 'rgba(255, 42, 109, 0.35)' : 'rgba(255,255,255,0.06)',
+                    border: currentView === `genre-${genre}` ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  {genre}
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {genres.map((genre) => (
-              <button
-                key={genre}
-                onClick={() => {
-                  setCurrentView(`genre-${genre}`);
-                  setIsMobileMenuOpen(false);
-                }}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: currentView === `genre-${genre}` ? '#fff' : 'var(--text-secondary)',
-                  background: currentView === `genre-${genre}` ? 'rgba(255, 42, 109, 0.3)' : 'rgba(255,255,255,0.04)',
-                  border: currentView === `genre-${genre}` ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.08)'
-                }}
-              >
-                {genre}
-              </button>
-            ))}
+
+          {/* Quick Admin Studio link in mobile drawer */}
+          <div style={{ marginTop: '6px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => {
+                setCurrentView('admin');
+                setIsMobileMenuOpen(false);
+              }}
+              style={{
+                flex: 1,
+                padding: '9px 12px',
+                borderRadius: '8px',
+                background: 'rgba(157, 78, 221, 0.2)',
+                border: '1px solid rgba(157, 78, 221, 0.5)',
+                color: '#fff',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <LayoutDashboard size={15} color="var(--accent-purple)" />
+              Admin CMS Studio
+            </button>
           </div>
         </div>
       )}
     </header>
   );
 };
-
