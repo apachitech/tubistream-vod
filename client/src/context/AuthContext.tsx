@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserProfile } from '../types';
+import { User, UserProfile, SubscriptionPaymentRequest, PaymentTransaction } from '../types';
 import { api, getAuthToken, clearAuthToken } from '../services/api';
 
 interface AuthContextType {
@@ -18,7 +18,7 @@ interface AuthContextType {
   updateWatchProgress: (titleId: string, progress: number, duration: number) => Promise<void>;
   toggleMyList: (titleId: string) => Promise<boolean>;
   toggleLike: (titleId: string) => Promise<boolean>;
-  upgradeToVip: () => Promise<void>;
+  upgradeToVip: (paymentPayload?: Partial<SubscriptionPaymentRequest>) => Promise<{ success: boolean; message?: string; transaction?: PaymentTransaction }>;
   isInMyList: (titleId: string) => boolean;
   isLiked: (titleId: string) => boolean;
   refreshUser: () => Promise<void>;
@@ -217,15 +217,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const upgradeToVip = async () => {
-    if (!user) return;
+  const upgradeToVip = async (paymentPayload?: Partial<SubscriptionPaymentRequest>): Promise<{ success: boolean; message?: string; transaction?: PaymentTransaction }> => {
+    if (!user) return { success: false, message: 'Please sign in to complete subscription' };
     try {
-      const res = await api.upgradeToVip(user.id);
-      if (res.success && res.user) {
-        setUser(res.user);
+      if (paymentPayload && paymentPayload.paymentMethod) {
+        const payload: SubscriptionPaymentRequest = {
+          userId: user.id,
+          planTier: 'vip_premium',
+          billingCycle: paymentPayload.billingCycle || 'monthly',
+          paymentMethod: paymentPayload.paymentMethod,
+          cardDetails: paymentPayload.cardDetails,
+          mobileMoneyDetails: paymentPayload.mobileMoneyDetails
+        };
+        const res = await api.subscribeWithPayment(payload);
+        if (res.success && res.user) {
+          setUser(res.user);
+          return { success: true, message: res.message, transaction: res.transaction };
+        }
+        return { success: false, message: res.message || 'Payment authorization failed' };
+      } else {
+        const res = await api.upgradeToVip(user.id);
+        if (res.success && res.user) {
+          setUser(res.user);
+          return { success: true };
+        }
+        return { success: false, message: 'Upgrade failed' };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to upgrade VIP', err);
+      return { success: false, message: err.message || 'Payment processing failed' };
     }
   };
 

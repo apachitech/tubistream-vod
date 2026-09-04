@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSettings, PlanTierConfig } from '../../types';
+import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSettings, PlanTierConfig, PaymentTransaction } from '../../types';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Film, Radio, DollarSign, Activity, Sparkles, Plus, Trash2, Edit3,
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
   Sliders, Play, Pause, Copy, ExternalLink, ToggleLeft, ToggleRight, Eye, Code, X,
-  Crown, Search, Shield, Zap, Tv
+  Crown, Search, Shield, Zap, Tv, CreditCard, Smartphone, CheckCircle2, Receipt
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -21,6 +21,11 @@ export const AdminDashboard: React.FC = () => {
   const [userFilter, setUserFilter] = useState<'all' | 'free' | 'vip_premium'>('all');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [planToast, setPlanToast] = useState<string | null>(null);
+
+  // Subscription Transactions State
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+  const [txSearchQuery, setTxSearchQuery] = useState('');
+  const [txMethodFilter, setTxMethodFilter] = useState<'all' | 'card' | 'mobile_money'>('all');
 
   // FAST TV Channel Management State
   const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
@@ -95,13 +100,14 @@ export const AdminDashboard: React.FC = () => {
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
-      const [dash, tit, chan, adRes, plansRes, usersRes] = await Promise.all([
+      const [dash, tit, chan, adRes, plansRes, usersRes, txRes] = await Promise.all([
         api.getAdminDashboard(),
         api.getTitles({ limit: 50 }),
         api.getFastChannels(),
         api.getAdminAds(),
         api.getAdminPlans(),
-        api.getAdminUsers()
+        api.getAdminUsers(),
+        api.getAdminPaymentTransactions()
       ]);
       if (dash.success) setDashboardData(dash);
       if (tit.success) setTitles(tit.titles);
@@ -113,6 +119,7 @@ export const AdminDashboard: React.FC = () => {
       }
       if (plansRes?.success) setPlanSettings(plansRes.planSettings);
       if (usersRes?.success) setUsersList(usersRes.users);
+      if (txRes?.success) setTransactions(txRes.transactions);
     } catch (err) {
       console.error('Failed to load admin data', err);
     } finally {
@@ -2750,6 +2757,213 @@ export const AdminDashboard: React.FC = () => {
                         </tr>
                       );
                     })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Subscription Billing & Transactions Ledger */}
+          <div className="glass-panel" style={{ borderRadius: '18px', overflow: 'hidden', padding: '24px', marginTop: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Receipt size={20} color="#ffd700" />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+                    Subscription Transactions & Billing Ledger
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#00f076', background: 'rgba(0, 240, 118, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                    LIVE AUDIT
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginTop: '2px' }}>
+                  Real-time payment transactions across Credit/Debit Cards and Mobile Money operators (MTN MoMo, Orange, M-Pesa, Airtel, Wave).
+                </p>
+              </div>
+
+              {/* Filter Pills & Search */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.12)', width: '220px' }}>
+                  <Search size={14} color="var(--text-muted)" style={{ marginRight: '8px' }} />
+                  <input
+                    type="text"
+                    placeholder="Search by ID, email or method..."
+                    value={txSearchQuery}
+                    onChange={(e) => setTxSearchQuery(e.target.value)}
+                    style={{ background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: '0.80rem', width: '100%' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => setTxMethodFilter('all')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: txMethodFilter === 'all' ? '#9d4edd' : 'rgba(255,255,255,0.05)',
+                      color: '#fff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    All ({transactions.length})
+                  </button>
+
+                  <button
+                    onClick={() => setTxMethodFilter('card')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: txMethodFilter === 'card' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255,255,255,0.05)',
+                      color: txMethodFilter === 'card' ? '#60a5fa' : '#fff',
+                      border: txMethodFilter === 'card' ? '1px solid #3b82f6' : '1px solid transparent',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💳 Card ({transactions.filter(t => t.paymentMethod === 'card').length})
+                  </button>
+
+                  <button
+                    onClick={() => setTxMethodFilter('mobile_money')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: txMethodFilter === 'mobile_money' ? 'rgba(255, 170, 0, 0.25)' : 'rgba(255,255,255,0.05)',
+                      color: txMethodFilter === 'mobile_money' ? '#ffaa00' : '#fff',
+                      border: txMethodFilter === 'mobile_money' ? '1px solid #ffaa00' : '1px solid transparent',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📱 Mobile Money ({transactions.filter(t => t.paymentMethod === 'mobile_money').length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick KPI stats strip */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 18px' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Invoiced</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#00f076', marginTop: '4px' }}>
+                  ${transactions.reduce((sum, t) => sum + (t.status === 'succeeded' ? t.amount : 0), 0).toFixed(2)}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 18px' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Paid Subscriptions</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffd700', marginTop: '4px' }}>
+                  {transactions.filter(t => t.status === 'succeeded').length}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 18px' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Card Volume</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#60a5fa', marginTop: '4px' }}>
+                  ${transactions.filter(t => t.paymentMethod === 'card' && t.status === 'succeeded').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 18px' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mobile Money Volume</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffaa00', marginTop: '4px' }}>
+                  ${transactions.filter(t => t.paymentMethod === 'mobile_money' && t.status === 'succeeded').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Transactions Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '14px 16px' }}>TX ID</th>
+                    <th style={{ padding: '14px 16px' }}>SUBSCRIBER</th>
+                    <th style={{ padding: '14px 16px' }}>PLAN & CYCLE</th>
+                    <th style={{ padding: '14px 16px' }}>PAYMENT METHOD</th>
+                    <th style={{ padding: '14px 16px' }}>AMOUNT</th>
+                    <th style={{ padding: '14px 16px' }}>DATE</th>
+                    <th style={{ padding: '14px 16px' }}>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions
+                    .filter(t => {
+                      if (txMethodFilter === 'card') return t.paymentMethod === 'card';
+                      if (txMethodFilter === 'mobile_money') return t.paymentMethod === 'mobile_money';
+                      return true;
+                    })
+                    .filter(t => {
+                      if (!txSearchQuery.trim()) return true;
+                      const q = txSearchQuery.toLowerCase();
+                      return (
+                        t.id.toLowerCase().includes(q) ||
+                        t.userEmail.toLowerCase().includes(q) ||
+                        (t.userName && t.userName.toLowerCase().includes(q)) ||
+                        (t.providerLabel && t.providerLabel.toLowerCase().includes(q))
+                      );
+                    })
+                    .map((tx) => (
+                      <tr key={tx.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.80rem', color: '#9d4edd', background: 'rgba(157, 78, 221, 0.1)', padding: '3px 7px', borderRadius: '4px' }}>
+                            {tx.id}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: 700, color: '#fff' }}>{tx.userName || 'Subscriber'}</div>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{tx.userEmail}</div>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#ffd700', fontWeight: 700, fontSize: '0.82rem' }}>
+                            <Crown size={12} /> VIP Premium
+                          </span>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                            {tx.billingCycle} billing
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            {tx.paymentMethod === 'card' ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', padding: '4px 8px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600 }}>
+                                <CreditCard size={13} /> {tx.providerLabel}
+                              </span>
+                            ) : (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(255, 170, 0, 0.12)', border: '1px solid rgba(255, 170, 0, 0.3)', color: '#ffaa00', padding: '4px 8px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600 }}>
+                                <Smartphone size={13} /> {tx.providerLabel}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.94rem' }}>
+                            ${tx.amount.toFixed(2)}
+                          </span>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginLeft: '4px' }}>USD</span>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.80rem' }}>
+                          {new Date(tx.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: tx.status === 'succeeded' ? 'rgba(0, 240, 118, 0.15)' : 'rgba(255, 68, 68, 0.15)',
+                            color: tx.status === 'succeeded' ? '#00f076' : '#ff4444',
+                            border: `1px solid ${tx.status === 'succeeded' ? 'rgba(0, 240, 118, 0.3)' : 'rgba(255, 68, 68, 0.3)'}`,
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            textTransform: 'capitalize'
+                          }}>
+                            {tx.status === 'succeeded' && <CheckCircle2 size={11} />}
+                            {tx.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>

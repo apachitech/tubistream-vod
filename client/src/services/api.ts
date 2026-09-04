@@ -1,4 +1,4 @@
-import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative, PlatformPlanSettings, PlanTierConfig } from '../types';
+import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative, PlatformPlanSettings, PlanTierConfig, SubscriptionPaymentRequest, PaymentTransaction } from '../types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
 
@@ -497,6 +497,23 @@ export const api = {
   async deleteFastChannel(id: string): Promise<{ success: boolean; message: string }> {
     const res = await fetch(`${API_BASE}/admin/fast/channels/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return res.json();
+  },
+
+  // Payment & Subscription Checkout
+  async subscribeWithPayment(payload: SubscriptionPaymentRequest): Promise<{ success: boolean; message: string; transaction: PaymentTransaction; user: User }> {
+    const res = await fetch(`${API_BASE}/payment/subscribe`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  },
+
+  async getAdminPaymentTransactions(): Promise<{ success: boolean; count: number; summary: any; transactions: PaymentTransaction[] }> {
+    const res = await fetch(`${API_BASE}/payment/admin/transactions`, {
       headers: getAuthHeaders()
     });
     return res.json();

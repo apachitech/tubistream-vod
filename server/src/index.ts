@@ -10,6 +10,7 @@ import adminRoutes from './routes/adminRoutes';
 
 import partyRoutes from './routes/partyRoutes';
 import aiSearchRoutes from './routes/aiSearchRoutes';
+import paymentRoutes from './routes/paymentRoutes';
 import path from 'path';
 import fs from 'fs';
 
@@ -35,6 +36,7 @@ app.use('/api/fast', fastRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/party', partyRoutes);
 app.use('/api/ai-search', aiSearchRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // System Health Check
 app.get('/api/health', (req, res) => {

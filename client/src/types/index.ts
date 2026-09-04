@@ -246,3 +246,47 @@ export interface AnalyticsSummary {
     avgStartupTimeMs: number;
   };
 }
+
+// Payment & Subscription Types
+export type PaymentMethodType = 'card' | 'mobile_money';
+export type MobileMoneyProvider = 'mtn' | 'orange' | 'mpesa' | 'airtel' | 'wave';
+
+export interface CardPaymentDetails {
+  cardNumber: string;
+  cardBrand?: 'visa' | 'mastercard' | 'amex' | 'verve' | 'generic';
+  cardholderName: string;
+  expiry: string;
+  cvv: string;
+}
+
+export interface MobileMoneyDetails {
+  provider: MobileMoneyProvider;
+  phoneNumber: string;
+  countryCode: string;
+}
+
+export interface SubscriptionPaymentRequest {
+  userId: string;
+  planTier: 'vip_premium';
+  billingCycle: 'monthly' | 'annual';
+  paymentMethod: PaymentMethodType;
+  cardDetails?: CardPaymentDetails;
+  mobileMoneyDetails?: MobileMoneyDetails;
+}
+
+export interface PaymentTransaction {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  amount: number;
+  currency: string;
+  planTier: 'vip_premium';
+  billingCycle: 'monthly' | 'annual';
+  paymentMethod: PaymentMethodType;
+  providerLabel: string;
+  summary: string;
+  status: 'succeeded' | 'processing' | 'failed';
+  receiptUrl?: string;
+  createdAt: string;
+}
