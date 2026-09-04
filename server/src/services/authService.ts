@@ -18,6 +18,7 @@ export class AuthService {
       email: 'viewer@tubistream.com',
       name: 'Alex Rivera',
       isGuest: false,
+      role: 'user',
       tier: 'free',
       createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
       activeProfileId: 'prof-main',
@@ -73,6 +74,7 @@ export class AuthService {
       email: 'vip@tubistream.com',
       name: 'Jordan Stone',
       isGuest: false,
+      role: 'user',
       tier: 'vip_premium',
       createdAt: new Date(Date.now() - 60 * 86400000).toISOString(),
       activeProfileId: 'prof-vip-main',
@@ -104,6 +106,7 @@ export class AuthService {
       email: 'admin@tubistream.com',
       name: 'Studio Admin',
       isGuest: false,
+      role: 'admin',
       tier: 'vip_premium',
       createdAt: new Date(Date.now() - 90 * 86400000).toISOString(),
       activeProfileId: 'prof-admin-main',
@@ -156,11 +159,14 @@ export class AuthService {
     const mainProfileId = `prof-${uuidv4().substring(0, 8)}`;
     const kidsProfileId = `prof-${uuidv4().substring(0, 8)}`;
 
+    const isAdminEmail = cleanEmail === 'admin@tubistream.com' || (process.env.ADMIN_EMAIL && cleanEmail === process.env.ADMIN_EMAIL.toLowerCase());
+
     const newUser: User = {
       id: userId,
       email: cleanEmail,
       name: displayName,
       isGuest: false,
+      role: isAdminEmail ? 'admin' : 'user',
       tier: 'free',
       createdAt: new Date().toISOString(),
       activeProfileId: mainProfileId,
@@ -238,6 +244,7 @@ export class AuthService {
       email: `guest_${newId}@tubistream.local`,
       name: 'Guest Viewer',
       isGuest: true,
+      role: 'user',
       tier: 'free',
       createdAt: new Date().toISOString(),
       activeProfileId: `prof-${newId}`,

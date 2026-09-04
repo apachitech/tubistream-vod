@@ -4,8 +4,41 @@ import { catalogService } from '../services/catalogService';
 import { adEngineService } from '../services/adEngineService';
 import { fastLinearService } from '../services/fastLinearService';
 import { mlRecommender } from '../services/mlRecommender';
+import { authService } from '../services/authService';
 
 const router = Router();
+
+// Authorization middleware: Restrict access to authenticated Admins only
+const requireAdmin = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  let user;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    user = authService.getUserByToken(token);
+  }
+
+  if (!user) {
+    const userId = req.headers['x-user-id'] as string;
+    if (userId) {
+      user = authService.getUser(userId);
+    }
+  }
+
+  const isAdmin = user && (user.role === 'admin' || user.email === 'admin@tubistream.com');
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Administrator privileges required to access TubiStream Studio CMS.'
+    });
+  }
+
+  req.user = user;
+  next();
+};
+
+// Guard all admin routes
+router.use(requireAdmin);
 
 // Dashboard Overview Metrics
 router.get('/dashboard', (req, res) => {

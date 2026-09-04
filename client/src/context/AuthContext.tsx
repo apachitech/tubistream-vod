@@ -8,6 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isGuest: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (email: string, password: string, name?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
@@ -54,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!(user && !user.isGuest && user.email && !user.email.includes('@tubistream.local'));
   const isGuest = !isAuthenticated;
+  const isAdmin = !!(user && (user.role === 'admin' || user.email === 'admin@tubistream.com'));
 
   const activeProfile = user
     ? user.profiles.find((p) => p.id === user.activeProfileId) || user.profiles[0]
@@ -243,6 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         isAuthenticated,
         isGuest,
+        isAdmin,
         login,
         register,
         logout,

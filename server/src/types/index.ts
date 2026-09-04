@@ -180,6 +180,7 @@ export interface User {
   email: string;
   name?: string;
   isGuest?: boolean;
+  role?: 'admin' | 'user';
   tier: 'free' | 'vip_premium';
   profiles: UserProfile[];
   activeProfileId: string;

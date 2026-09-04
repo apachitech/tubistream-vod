@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Title, FastChannel, AnalyticsSummary, AdCreative } from '../../types';
 import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Film, Radio, DollarSign, Activity, Sparkles, Plus, Trash2, Edit3,
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'fast' | 'ads' | 'ml'>('overview');
   const [dashboardData, setDashboardData] = useState<any | null>(null);
   const [titles, setTitles] = useState<Title[]>([]);
@@ -88,6 +90,12 @@ export const AdminDashboard: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchAllData();
+    }
+  }, [isAdmin]);
 
   const handleUpdateAdConfig = async (partialConfig: any) => {
     try {
@@ -255,6 +263,17 @@ export const AdminDashboard: React.FC = () => {
     revenueTrend: [],
     qosMetrics: { averageBufferRatio: 0.12, errorRatePercentage: 0.04, avgStartupTimeMs: 420 }
   };
+
+  if (!isAdmin) {
+    return (
+      <div style={{ maxWidth: '640px', margin: '80px auto', padding: '40px', textAlign: 'center' }} className="glass-panel">
+        <h3 style={{ color: 'var(--accent-pink)', marginBottom: '8px', fontSize: '1.4rem' }}>Admin Access Restricted</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          You must be logged in as an Administrator to view and manage the TubiStream Studio CMS.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px', minHeight: '85vh' }}>

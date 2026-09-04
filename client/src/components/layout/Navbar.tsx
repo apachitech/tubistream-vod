@@ -26,6 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     switchProfile,
     isAuthenticated,
     isGuest,
+    isAdmin,
     logout,
     openAuthModal,
     addProfile
@@ -852,30 +853,32 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Admin CMS Studio Button */}
-          <button
-            onClick={() => setCurrentView('admin')}
-            style={{
-              padding: '0 10px',
-              height: '36px',
-              borderRadius: '7px',
-              background: currentView === 'admin' ? '#9d4edd' : 'rgba(157, 78, 221, 0.18)',
-              border: '1px solid rgba(157, 78, 221, 0.45)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              cursor: 'pointer'
-            }}
-            title="Admin CMS & Ad Engine Studio"
-          >
-            <LayoutDashboard size={13} />
-            <span>{windowWidth < 1250 ? 'Admin' : 'Admin CMS'}</span>
-          </button>
+          {/* Admin CMS Studio Button (Visible ONLY to Admin) */}
+          {isAdmin && (
+            <button
+              onClick={() => setCurrentView('admin')}
+              style={{
+                padding: '0 10px',
+                height: '36px',
+                borderRadius: '7px',
+                background: currentView === 'admin' ? '#9d4edd' : 'rgba(157, 78, 221, 0.18)',
+                border: '1px solid rgba(157, 78, 221, 0.45)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                cursor: 'pointer'
+              }}
+              title="Admin CMS & Ad Engine Studio"
+            >
+              <LayoutDashboard size={13} />
+              <span>{windowWidth < 1250 ? 'Admin' : 'Admin CMS'}</span>
+            </button>
+          )}
 
           {/* Authentication & Profile Section */}
           {isGuest ? (
@@ -977,7 +980,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {isAuthenticated ? user?.email : 'Viewing in Guest Mode'}
                     </div>
-                    <div style={{ marginTop: '3px' }}>
+                    <div style={{ marginTop: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      {isAdmin && (
+                        <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(157, 78, 221, 0.3)', color: '#e0aaff', border: '1px solid rgba(157, 78, 221, 0.5)', fontWeight: 700 }}>
+                          Studio Admin
+                        </span>
+                      )}
                       {user?.tier === 'vip_premium' ? (
                         <span className="badge-vip" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>
                           <Crown size={9} /> VIP Premium
@@ -1091,6 +1099,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
 
                 <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
+
+                {/* Admin Studio shortcut in profile dropdown */}
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setCurrentView('admin');
+                      setIsProfileMenuOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      color: '#e0aaff',
+                      fontSize: '0.80rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: 'rgba(157, 78, 221, 0.18)',
+                      border: '1px solid rgba(157, 78, 221, 0.45)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <LayoutDashboard size={14} color="#e0aaff" />
+                    <span>Open Admin Studio</span>
+                  </button>
+                )}
 
                 {/* Auth Actions: Sign In vs Sign Out */}
                 {isAuthenticated ? (
@@ -1348,32 +1383,34 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Admin Studio shortcut */}
-          <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <button
-              onClick={() => {
-                setCurrentView('admin');
-                setIsMobileMenuOpen(false);
-              }}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '8px',
-                background: 'rgba(157, 78, 221, 0.2)',
-                border: '1px solid rgba(157, 78, 221, 0.5)',
-                color: '#fff',
-                fontSize: '0.84rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <LayoutDashboard size={15} color="var(--accent-purple)" />
-              Admin CMS & Ad Engine Studio
-            </button>
-          </div>
+          {/* Admin Studio shortcut (Visible ONLY to Admin) */}
+          {isAdmin && (
+            <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <button
+                onClick={() => {
+                  setCurrentView('admin');
+                  setIsMobileMenuOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  background: 'rgba(157, 78, 221, 0.2)',
+                  border: '1px solid rgba(157, 78, 221, 0.5)',
+                  color: '#fff',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <LayoutDashboard size={15} color="var(--accent-purple)" />
+                Admin CMS & Ad Engine Studio
+              </button>
+            </div>
+          )}
         </div>
       )}
     </header>

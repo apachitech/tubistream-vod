@@ -22,10 +22,10 @@ import { SubscriptionModal } from './components/modal/SubscriptionModal';
 import { AuthModal } from './components/modal/AuthModal';
 import { VideoPlayer } from './components/player/VideoPlayer';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { Film, Radio, Sparkles, Clock, Flame, Heart, Play } from 'lucide-react';
+import { Film, Radio, Sparkles, Clock, Flame, Heart, Play, ShieldAlert } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const { user, activeProfile } = useAuth();
+  const { user, activeProfile, isAdmin, openAuthModal } = useAuth();
   const { isPlaying } = usePlayer();
   const { deviceMode } = useDeviceMode();
 
@@ -138,8 +138,53 @@ export const App: React.FC = () => {
 
           {/* Main Content Body */}
           <main style={{ flex: 1 }}>
-            {/* View: Admin CMS Studio */}
-            {currentView === 'admin' && <AdminDashboard />}
+            {/* View: Admin CMS Studio (Protected - Admin Only) */}
+            {currentView === 'admin' && (
+              isAdmin ? (
+                <AdminDashboard />
+              ) : (
+                <div style={{ maxWidth: '640px', margin: '80px auto', padding: '40px 30px', textAlign: 'center' }} className="glass-panel">
+                  <div
+                    style={{
+                      width: '70px',
+                      height: '70px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 42, 109, 0.15)',
+                      border: '2px solid var(--accent-pink)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 20px',
+                      boxShadow: '0 0 25px rgba(255, 42, 109, 0.4)'
+                    }}
+                  >
+                    <ShieldAlert size={36} color="var(--accent-pink)" />
+                  </div>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '10px', color: '#fff' }}>
+                    Access Restricted
+                  </h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '28px' }}>
+                    The TubiStream Studio CMS & Ad Decision Engine is reserved strictly for authorized administrators. Please sign in with an administrative account to continue.
+                  </p>
+                  <div style={{ display: 'flex', gap: '14px', justifyContent: 'center' }}>
+                    <button
+                      onClick={() => setCurrentView('home')}
+                      className="btn-secondary"
+                      style={{ padding: '10px 20px', fontSize: '0.88rem' }}
+                    >
+                      Return Home
+                    </button>
+                    <button
+                      onClick={() => openAuthModal('signin')}
+                      className="btn-primary"
+                      style={{ padding: '10px 20px', fontSize: '0.88rem' }}
+                    >
+                      Sign In as Admin
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
 
             {/* View: 24/7 Live FAST TV Guide */}
             {currentView === 'live-fast' && <FastLiveGuide />}

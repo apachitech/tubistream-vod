@@ -342,16 +342,18 @@ export const api = {
     return res.json();
   },
 
-  // Admin CMS & Analytics
+  // Admin CMS & Analytics (Protected)
   async getAdminDashboard(): Promise<any> {
-    const res = await fetch(`${API_BASE}/admin/dashboard`);
+    const res = await fetch(`${API_BASE}/admin/dashboard`, {
+      headers: getAuthHeaders()
+    });
     return res.json();
   },
 
   async createTitle(data: Partial<Title>): Promise<any> {
     const res = await fetch(`${API_BASE}/admin/catalog`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     return res.json();
@@ -360,7 +362,7 @@ export const api = {
   async updateTitle(id: string, data: Partial<Title>): Promise<any> {
     const res = await fetch(`${API_BASE}/admin/catalog/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     return res.json();
@@ -368,7 +370,8 @@ export const api = {
 
   async deleteTitle(id: string): Promise<any> {
     const res = await fetch(`${API_BASE}/admin/catalog/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     return res.json();
   },
@@ -376,26 +379,30 @@ export const api = {
   async createAdCreative(data: any): Promise<any> {
     const res = await fetch(`${API_BASE}/admin/ads`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     return res.json();
   },
 
   async getAdminAds(): Promise<{ success: boolean; ads: AdCreative[]; config: any; summary: any }> {
-    const res = await fetch(`${API_BASE}/admin/ads`);
+    const res = await fetch(`${API_BASE}/admin/ads`, {
+      headers: getAuthHeaders()
+    });
     return res.json();
   },
 
   async getAdConfig(): Promise<{ success: boolean; config: any }> {
-    const res = await fetch(`${API_BASE}/admin/ads/config`);
+    const res = await fetch(`${API_BASE}/admin/ads/config`, {
+      headers: getAuthHeaders()
+    });
     return res.json();
   },
 
   async updateAdConfig(config: any): Promise<{ success: boolean; config: any }> {
     const res = await fetch(`${API_BASE}/admin/ads/config`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(config)
     });
     return res.json();
@@ -403,7 +410,8 @@ export const api = {
 
   async toggleAdStatus(adId: string): Promise<{ success: boolean; ad: AdCreative }> {
     const res = await fetch(`${API_BASE}/admin/ads/${adId}/status`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      headers: getAuthHeaders()
     });
     return res.json();
   },
@@ -411,7 +419,7 @@ export const api = {
   async updateAdCpm(adId: string, cpm: number): Promise<{ success: boolean; ad: AdCreative }> {
     const res = await fetch(`${API_BASE}/admin/ads/${adId}/cpm`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ cpm })
     });
     return res.json();
@@ -419,7 +427,8 @@ export const api = {
 
   async deleteAdCreative(adId: string): Promise<{ success: boolean; deleted: boolean }> {
     const res = await fetch(`${API_BASE}/admin/ads/${adId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     return res.json();
   },
@@ -427,7 +436,7 @@ export const api = {
   async createFastChannel(data: any): Promise<any> {
     const res = await fetch(`${API_BASE}/admin/fast/channel`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     return res.json();
