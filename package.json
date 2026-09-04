@@ -1,0 +1,16 @@
+{
+  "name": "tubi-vod-platform",
+  "version": "1.0.0",
+  "description": "Scalable Video-on-Demand & FAST Streaming Platform like TubiTV",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build && npm --prefix server run build",
+    "start": "node server/dist/index.js",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
