@@ -125,11 +125,12 @@ router.post('/like/toggle', (req, res) => {
   res.json({ success: true, ...result });
 });
 
-// 12. Upgrade to VIP
-router.post('/upgrade-vip', (req, res) => {
-  const userId = resolveUserId(req) || 'usr-default-tubi-fan';
-  const result = authService.upgradeToVip(userId);
-  res.json(result);
+// 12. Upgrade to VIP (Subscription Payment Required)
+router.post('/upgrade-vip', (_req, res) => {
+  return res.status(402).json({
+    success: false,
+    message: 'Payment required: Free members can become VIP members only after paying a subscription. Please subscribe securely via /api/payment/subscribe.'
+  });
 });
 
 // 13. Smart TV Pairing Code Generation

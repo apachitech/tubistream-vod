@@ -248,7 +248,7 @@ export interface AnalyticsSummary {
 }
 
 // Payment & Subscription Types
-export type PaymentMethodType = 'card' | 'mobile_money';
+export type PaymentMethodType = 'card' | 'mobile_money' | 'paypal' | 'apple_pay' | 'bank_transfer' | 'crypto' | string;
 export type MobileMoneyProvider = 'mtn' | 'orange' | 'mpesa' | 'airtel' | 'wave';
 
 export interface CardPaymentDetails {
@@ -265,6 +265,26 @@ export interface MobileMoneyDetails {
   countryCode: string;
 }
 
+export interface SubscriptionPaymentMethodConfig {
+  id: string;
+  name: string;
+  category: 'card' | 'mobile_money' | 'wallet' | 'bank' | 'crypto' | 'custom';
+  description: string;
+  badge?: string;
+  icon: string;
+  isEnabled: boolean;
+  supportedCurrencies: string[];
+  providers?: {
+    id: string;
+    name: string;
+    color?: string;
+    isEnabled: boolean;
+  }[];
+  instructions?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SubscriptionPaymentRequest {
   userId: string;
   planTier: 'vip_premium';
@@ -272,6 +292,11 @@ export interface SubscriptionPaymentRequest {
   paymentMethod: PaymentMethodType;
   cardDetails?: CardPaymentDetails;
   mobileMoneyDetails?: MobileMoneyDetails;
+  customDetails?: {
+    accountRef?: string;
+    payerName?: string;
+    notes?: string;
+  };
 }
 
 export interface PaymentTransaction {

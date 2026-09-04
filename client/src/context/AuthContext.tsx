@@ -223,29 +223,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: 'Only registered members can pay or checkout securely. Please sign in or create an account.' };
     }
     try {
-      if (paymentPayload && paymentPayload.paymentMethod) {
-        const payload: SubscriptionPaymentRequest = {
-          userId: user.id,
-          planTier: 'vip_premium',
-          billingCycle: paymentPayload.billingCycle || 'monthly',
-          paymentMethod: paymentPayload.paymentMethod,
-          cardDetails: paymentPayload.cardDetails,
-          mobileMoneyDetails: paymentPayload.mobileMoneyDetails
+      if (!paymentPayload || !paymentPayload.paymentMethod) {
+        return {
+          success: false,
+          message: 'Payment required: Free members become VIP members only after paying a subscription. Please select a payment method.'
         };
-        const res = await api.subscribeWithPayment(payload);
-        if (res.success && res.user) {
-          setUser(res.user);
-          return { success: true, message: res.message, transaction: res.transaction };
-        }
-        return { success: false, message: res.message || 'Payment authorization failed' };
-      } else {
-        const res = await api.upgradeToVip(user.id);
-        if (res.success && res.user) {
-          setUser(res.user);
-          return { success: true };
-        }
-        return { success: false, message: 'Upgrade failed' };
       }
+
+      const payload: SubscriptionPaymentRequest = {
+        userId: user.id,
+        planTier: 'vip_premium',
+        billingCycle: paymentPayload.billingCycle || 'monthly',
+        paymentMethod: paymentPayload.paymentMethod,
+        cardDetails: paymentPayload.cardDetails,
+        mobileMoneyDetails: paymentPayload.mobileMoneyDetails,
+        customDetails: paymentPayload.customDetails
+      };
+      const res = await api.subscribeWithPayment(payload);
+      if (res.success && res.user) {
+        setUser(res.user);
+        return { success: true, message: res.message, transaction: res.transaction };
+      }
+      return { success: false, message: res.message || 'Payment authorization failed' };
     } catch (err: any) {
       console.error('Failed to upgrade VIP', err);
       return { success: false, message: err.message || 'Payment processing failed' };

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { PaymentMethodType, MobileMoneyProvider, PaymentTransaction } from '../../types';
+import { PaymentMethodType, MobileMoneyProvider, PaymentTransaction, SubscriptionPaymentMethodConfig } from '../../types';
+import { api } from '../../services/api';
 import {
   Crown, Check, X, Sparkles, ShieldCheck, Zap, Lock, CreditCard,
-  Smartphone, ArrowRight, RefreshCw, Download, AlertCircle, UserCheck, LogIn
+  Smartphone, ArrowRight, RefreshCw, Download, AlertCircle, UserCheck, LogIn,
+  Wallet, Landmark, Coins, Globe
 } from 'lucide-react';
 
 interface SubscriptionModalProps {
@@ -15,6 +17,20 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
   const { user, upgradeToVip, isAuthenticated, isGuest, openAuthModal } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('card');
+  const [availableMethods, setAvailableMethods] = useState<SubscriptionPaymentMethodConfig[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.getPaymentMethods().then((res) => {
+        if (res.success && res.methods && res.methods.length > 0) {
+          setAvailableMethods(res.methods);
+          if (!res.methods.some((m) => m.id === paymentMethod)) {
+            setPaymentMethod(res.methods[0].id as any);
+          }
+        }
+      }).catch(err => console.error('Failed to load payment methods', err));
+    }
+  }, [isOpen]);
   
   // Card Form State
   const [cardholderName, setCardholderName] = useState(user?.name || 'Alex Rivera');
@@ -120,6 +136,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
           provider: momoProvider,
           phoneNumber: phoneNumber.replace(/\s+/g, ''),
           countryCode
+        } : undefined,
+        customDetails: (paymentMethod !== 'card' && paymentMethod !== 'mobile_money') ? {
+          accountRef: `${paymentMethod.toUpperCase()}-${Date.now().toString(36)}`,
+          payerName: user?.name || 'VIP Subscriber'
         } : undefined
       });
 
@@ -468,51 +488,53 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                   </div>
                 )}
 
-                {/* Method Switcher Tabs: Card vs Mobile Money */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('card')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      padding: '12px',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      border: paymentMethod === 'card' ? '2px solid #ffd700' : '1px solid rgba(255,255,255,0.12)',
-                      background: paymentMethod === 'card' ? 'rgba(255, 215, 0, 0.12)' : 'rgba(255,255,255,0.03)',
-                      color: paymentMethod === 'card' ? '#ffd700' : 'var(--text-secondary)',
-                      fontWeight: 800,
-                      fontSize: '0.9rem',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <CreditCard size={18} /> Credit / Debit Card
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('mobile_money')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      padding: '12px',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      border: paymentMethod === 'mobile_money' ? '2px solid #ffd700' : '1px solid rgba(255,255,255,0.12)',
-                      background: paymentMethod === 'mobile_money' ? 'rgba(255, 215, 0, 0.12)' : 'rgba(255,255,255,0.03)',
-                      color: paymentMethod === 'mobile_money' ? '#ffd700' : 'var(--text-secondary)',
-                      fontWeight: 800,
-                      fontSize: '0.9rem',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <Smartphone size={18} /> Mobile Money (MoMo)
-                  </button>
+                {/* Method Switcher Tabs: Dynamic based on Active Configured Methods */}
+                <div style={{ display: 'grid', gridTemplateColumns: availableMethods.length > 2 ? 'repeat(auto-fit, minmax(130px, 1fr))' : '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+                  {(availableMethods.length > 0 ? availableMethods : [
+                    { id: 'card', name: 'Credit / Debit Card', category: 'card', isEnabled: true, badge: 'Popular' },
+                    { id: 'mobile_money', name: 'Mobile Money', category: 'mobile_money', isEnabled: true, badge: 'Pan-Africa' }
+                  ]).map((m: any) => {
+                    const isSelected = paymentMethod === m.id;
+                    const getIcon = () => {
+                      if (m.category === 'card') return <CreditCard size={15} />;
+                      if (m.category === 'mobile_money') return <Smartphone size={15} />;
+                      if (m.category === 'wallet') return <Wallet size={15} />;
+                      if (m.category === 'bank') return <Landmark size={15} />;
+                      if (m.category === 'crypto') return <Coins size={15} />;
+                      return <Globe size={15} />;
+                    };
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(m.id as any)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          border: isSelected ? '2px solid #ffd700' : '1px solid rgba(255,255,255,0.12)',
+                          background: isSelected ? 'rgba(255, 215, 0, 0.12)' : 'rgba(255,255,255,0.03)',
+                          color: isSelected ? '#ffd700' : 'var(--text-secondary)',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          transition: 'all 0.15s ease',
+                          position: 'relative'
+                        }}
+                      >
+                        {m.badge && (
+                          <span style={{ position: 'absolute', top: '-6px', right: '6px', fontSize: '0.62rem', background: isSelected ? '#ffd700' : 'rgba(255,255,255,0.15)', color: isSelected ? '#000' : '#fff', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                            {m.badge}
+                          </span>
+                        )}
+                        {getIcon()}
+                        <span>{m.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <form onSubmit={handleSubscribe}>
@@ -726,6 +748,63 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                       >
                         📲 <strong>Instant USSD Authorization:</strong> Clicking Subscribe will send an authorization push prompt directly to your phone. Enter your Mobile Money PIN on your handset to approve.
                       </div>
+                    </div>
+                  )}
+
+                  {/* Option 3: PayPal & Digital Wallets */}
+                  {paymentMethod === 'paypal' && (
+                    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', background: 'rgba(0, 48, 135, 0.1)', border: '1px solid rgba(0, 48, 135, 0.3)', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Wallet size={24} color="#008cff" />
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', margin: 0 }}>PayPal Express Checkout</h4>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>One-click secure payment linked to {user?.email}</span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        Clicking the button below will authorize {formattedPrice} USD via your linked PayPal or Venmo account.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Option 4: Apple Pay / Google Pay */}
+                  {paymentMethod === 'apple_pay' && (
+                    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Zap size={24} color="#ffd700" />
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', margin: 0 }}>1-Touch Biometric Checkout</h4>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Apple Pay & Google Wallet Pass</span>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        Authorize instantly using Touch ID, Face ID, or your device lock code.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Option 5: Bank Transfer / Crypto / Custom */}
+                  {paymentMethod !== 'card' && paymentMethod !== 'mobile_money' && paymentMethod !== 'paypal' && paymentMethod !== 'apple_pay' && (
+                    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Landmark size={24} color="#00f076" />
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                            {availableMethods.find(m => m.id === paymentMethod)?.name || 'Direct Transfer'}
+                          </h4>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                            {availableMethods.find(m => m.id === paymentMethod)?.description || 'Secure verified gateway'}
+                          </span>
+                        </div>
+                      </div>
+                      {availableMethods.find(m => m.id === paymentMethod)?.instructions && (
+                        <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(0, 240, 118, 0.08)', border: '1px solid rgba(0, 240, 118, 0.2)', fontSize: '0.80rem', color: '#00f076' }}>
+                          ℹ️ {availableMethods.find(m => m.id === paymentMethod)?.instructions}
+                        </div>
+                      )}
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        Clicking below generates your unique invoice reference and approves your VIP status.
+                      </p>
                     </div>
                   )}
 

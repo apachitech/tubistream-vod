@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSettings, PlanTierConfig, PaymentTransaction } from '../../types';
+import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSettings, PlanTierConfig, PaymentTransaction, SubscriptionPaymentMethodConfig } from '../../types';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Film, Radio, DollarSign, Activity, Sparkles, Plus, Trash2, Edit3,
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
   Sliders, Play, Pause, Copy, ExternalLink, ToggleLeft, ToggleRight, Eye, Code, X,
-  Crown, Search, Shield, Zap, Tv, CreditCard, Smartphone, CheckCircle2, Receipt
+  Crown, Search, Shield, Zap, Tv, CreditCard, Smartphone, CheckCircle2, Receipt,
+  Wallet, Landmark, Coins, Globe, PlusCircle
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -26,6 +27,20 @@ export const AdminDashboard: React.FC = () => {
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [txSearchQuery, setTxSearchQuery] = useState('');
   const [txMethodFilter, setTxMethodFilter] = useState<'all' | 'card' | 'mobile_money'>('all');
+
+  // Subscription Payment Methods State (Admin Control)
+  const [paymentMethodsList, setPaymentMethodsList] = useState<SubscriptionPaymentMethodConfig[]>([]);
+  const [isAddMethodOpen, setIsAddMethodOpen] = useState(false);
+  const [newMethodForm, setNewMethodForm] = useState({
+    name: '',
+    category: 'custom' as 'card' | 'mobile_money' | 'wallet' | 'bank' | 'crypto' | 'custom',
+    description: '',
+    badge: 'New',
+    icon: 'credit-card',
+    isEnabled: true,
+    supportedCurrencies: 'USD, EUR, GBP',
+    instructions: ''
+  });
 
   // FAST TV Channel Management State
   const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
@@ -100,14 +115,15 @@ export const AdminDashboard: React.FC = () => {
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
-      const [dash, tit, chan, adRes, plansRes, usersRes, txRes] = await Promise.all([
+      const [dash, tit, chan, adRes, plansRes, usersRes, txRes, methodsRes] = await Promise.all([
         api.getAdminDashboard(),
         api.getTitles({ limit: 50 }),
         api.getFastChannels(),
         api.getAdminAds(),
         api.getAdminPlans(),
         api.getAdminUsers(),
-        api.getAdminPaymentTransactions()
+        api.getAdminPaymentTransactions(),
+        api.getAdminPaymentMethods()
       ]);
       if (dash.success) setDashboardData(dash);
       if (tit.success) setTitles(tit.titles);
@@ -120,10 +136,78 @@ export const AdminDashboard: React.FC = () => {
       if (plansRes?.success) setPlanSettings(plansRes.planSettings);
       if (usersRes?.success) setUsersList(usersRes.users);
       if (txRes?.success) setTransactions(txRes.transactions);
+      if (methodsRes?.success) setPaymentMethodsList(methodsRes.methods);
     } catch (err) {
       console.error('Failed to load admin data', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTogglePaymentMethod = async (methodId: string) => {
+    try {
+      const res = await api.togglePaymentMethod(methodId);
+      if (res.success && res.method) {
+        setPaymentMethodsList(prev => prev.map(m => m.id === methodId ? res.method : m));
+        setPlanToast(`Payment method "${res.method.name}" is now ${res.method.isEnabled ? 'Active & Live on Checkout' : 'Disabled'}`);
+        setTimeout(() => setPlanToast(null), 3500);
+      }
+    } catch (err) {
+      console.error('Failed to toggle payment method', err);
+    }
+  };
+
+  const handleCreatePaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const currencies = newMethodForm.supportedCurrencies
+        .split(',')
+        .map(c => c.trim().toUpperCase())
+        .filter(Boolean);
+
+      const res = await api.createPaymentMethod({
+        name: newMethodForm.name,
+        category: newMethodForm.category,
+        description: newMethodForm.description,
+        badge: newMethodForm.badge,
+        icon: newMethodForm.icon,
+        isEnabled: newMethodForm.isEnabled,
+        supportedCurrencies: currencies.length > 0 ? currencies : ['USD'],
+        instructions: newMethodForm.instructions
+      });
+
+      if (res.success && res.method) {
+        setPaymentMethodsList(prev => [...prev, res.method]);
+        setIsAddMethodOpen(false);
+        setNewMethodForm({
+          name: '',
+          category: 'custom',
+          description: '',
+          badge: 'New',
+          icon: 'credit-card',
+          isEnabled: true,
+          supportedCurrencies: 'USD, EUR, GBP',
+          instructions: ''
+        });
+        setPlanToast(`New payment method "${res.method.name}" added successfully!`);
+        setTimeout(() => setPlanToast(null), 3500);
+      }
+    } catch (err) {
+      console.error('Failed to create payment method', err);
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete payment method "${name}"?`)) return;
+    try {
+      const res = await api.deletePaymentMethod(id);
+      if (res.success) {
+        setPaymentMethodsList(prev => prev.filter(m => m.id !== id));
+        setPlanToast(`Payment method "${name}" deleted.`);
+        setTimeout(() => setPlanToast(null), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to delete payment method', err);
     }
   };
 
@@ -2566,6 +2650,156 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
+          {/* Subscription Payment Methods & Gateway Control */}
+          <div className="glass-panel" style={{ borderRadius: '18px', overflow: 'hidden', padding: '24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CreditCard size={20} color="#ffd700" />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+                    Subscription Payment Gateways & Methods
+                  </h3>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#00f076', background: 'rgba(0, 240, 118, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                    {paymentMethodsList.filter(m => m.isEnabled).length} ACTIVE CHANNELS
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginTop: '2px' }}>
+                  Manage payment gateways available to viewers during VIP checkout. Toggle methods on/off or add new custom payment providers.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsAddMethodOpen(true)}
+                className="btn-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #ffd700 0%, #ff8800 100%)',
+                  color: '#000',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  padding: '9px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Plus size={16} /> Add Payment Method
+              </button>
+            </div>
+
+            {/* Methods Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              {paymentMethodsList.map((m) => {
+                const getMethodIcon = () => {
+                  if (m.category === 'card') return <CreditCard size={20} color="#60a5fa" />;
+                  if (m.category === 'mobile_money') return <Smartphone size={20} color="#ffaa00" />;
+                  if (m.category === 'wallet') return <Wallet size={20} color="#008cff" />;
+                  if (m.category === 'bank') return <Landmark size={20} color="#00f076" />;
+                  if (m.category === 'crypto') return <Coins size={20} color="#ffd700" />;
+                  return <Globe size={20} color="#9d4edd" />;
+                };
+
+                return (
+                  <div
+                    key={m.id}
+                    style={{
+                      padding: '18px',
+                      borderRadius: '14px',
+                      background: m.isEnabled ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.015)',
+                      border: m.isEnabled ? '1px solid rgba(255, 215, 0, 0.25)' : '1px solid rgba(255, 255, 255, 0.07)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '12px'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ padding: '6px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)' }}>
+                            {getMethodIcon()}
+                          </div>
+                          <div>
+                            <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                              {m.name}
+                            </h4>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                              {m.category.replace('_', ' ')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {m.badge && (
+                          <span style={{ fontSize: '0.70rem', background: 'rgba(255,215,0,0.15)', color: '#ffd700', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                            {m.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      <p style={{ fontSize: '0.80rem', color: 'var(--text-secondary)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                        {m.description}
+                      </p>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '10px' }}>
+                        {m.supportedCurrencies.map((cur) => (
+                          <span key={cur} style={{ fontSize: '0.68rem', background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '3px', fontWeight: 600 }}>
+                            {cur}
+                          </span>
+                        ))}
+                      </div>
+
+                      {m.providers && m.providers.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {m.providers.map(p => (
+                            <span key={p.id} style={{ fontSize: '0.68rem', background: 'rgba(255,255,255,0.04)', color: p.color || '#fff', border: `1px solid ${p.color || 'rgba(255,255,255,0.2)'}`, padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>
+                              {p.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                      <button
+                        onClick={() => handleTogglePaymentMethod(m.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: m.isEnabled ? '#00f076' : 'var(--text-muted)',
+                          fontSize: '0.78rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        {m.isEnabled ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
+                        {m.isEnabled ? 'Live on Checkout' : 'Disabled'}
+                      </button>
+
+                      {!['card', 'mobile_money'].includes(m.id) && (
+                        <button
+                          onClick={() => handleDeletePaymentMethod(m.id, m.name)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent-pink)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px'
+                          }}
+                          title="Delete custom method"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* User Subscriber Manager Table */}
           <div className="glass-panel" style={{ borderRadius: '18px', overflow: 'hidden', padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
@@ -3081,6 +3315,169 @@ export const AdminDashboard: React.FC = () => {
                 <Copy size={16} /> Copy XML Content
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Subscription Payment Method Modal */}
+      {isAddMethodOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setIsAddMethodOpen(false)}
+        >
+          <div
+            className="glass-heavy animate-fade-in"
+            style={{
+              width: '100%',
+              maxWidth: '540px',
+              borderRadius: '20px',
+              padding: '28px',
+              border: '1px solid rgba(255, 215, 0, 0.3)',
+              background: 'linear-gradient(180deg, #10121d 0%, #0c0d16 100%)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.9)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <PlusCircle size={22} color="#ffd700" />
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                  Add Subscription Payment Method
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsAddMethodOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePaymentMethod} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                  Method Display Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Flutterwave Checkout, PayPal Express, Binance Pay"
+                  value={newMethodForm.name}
+                  onChange={(e) => setNewMethodForm({ ...newMethodForm, name: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.88rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                    Category
+                  </label>
+                  <select
+                    value={newMethodForm.category}
+                    onChange={(e) => setNewMethodForm({ ...newMethodForm, category: e.target.value as any })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#12141d', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.88rem' }}
+                  >
+                    <option value="card">Credit / Debit Card</option>
+                    <option value="mobile_money">Mobile Money (MoMo)</option>
+                    <option value="wallet">Digital Wallet</option>
+                    <option value="bank">Bank Wire / Transfer</option>
+                    <option value="crypto">Cryptocurrency</option>
+                    <option value="custom">Custom Gateway</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                    Badge Tag
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Instant, Popular, Zero Fee"
+                    value={newMethodForm.badge}
+                    onChange={(e) => setNewMethodForm({ ...newMethodForm, badge: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.88rem' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                  Description
+                </label>
+                <input
+                  type="text"
+                  placeholder="Short description displayed on viewer checkout"
+                  value={newMethodForm.description}
+                  onChange={(e) => setNewMethodForm({ ...newMethodForm, description: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.88rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                  Supported Currencies (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  placeholder="USD, EUR, GBP, GHS, NGN, KES"
+                  value={newMethodForm.supportedCurrencies}
+                  onChange={(e) => setNewMethodForm({ ...newMethodForm, supportedCurrencies: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.88rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                  Checkout Instructions (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Account number, routing details, or wallet address instructions"
+                  value={newMethodForm.instructions}
+                  onChange={(e) => setNewMethodForm({ ...newMethodForm, instructions: e.target.value })}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.88rem', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}>
+                <span style={{ fontSize: '0.86rem', color: '#fff', fontWeight: 600 }}>Activate & Enable Immediately</span>
+                <button
+                  type="button"
+                  onClick={() => setNewMethodForm({ ...newMethodForm, isEnabled: !newMethodForm.isEnabled })}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: newMethodForm.isEnabled ? '#00f076' : 'var(--text-muted)' }}
+                >
+                  {newMethodForm.isEnabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsAddMethodOpen(false)}
+                  style={{ padding: '10px 18px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ padding: '10px 22px', borderRadius: '8px', background: 'linear-gradient(135deg, #ffd700 0%, #ff8800 100%)', color: '#000', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Create Payment Method
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

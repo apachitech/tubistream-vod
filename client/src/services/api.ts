@@ -1,4 +1,4 @@
-import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative, PlatformPlanSettings, PlanTierConfig, SubscriptionPaymentRequest, PaymentTransaction } from '../types';
+import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative, PlatformPlanSettings, PlanTierConfig, SubscriptionPaymentRequest, PaymentTransaction, SubscriptionPaymentMethodConfig } from '../types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
 
@@ -514,6 +514,53 @@ export const api = {
 
   async getAdminPaymentTransactions(): Promise<{ success: boolean; count: number; summary: any; transactions: PaymentTransaction[] }> {
     const res = await fetch(`${API_BASE}/payment/admin/transactions`, {
+      headers: getAuthHeaders()
+    });
+    return res.json();
+  },
+
+  // Subscription Payment Methods Management (Admin & Public)
+  async getPaymentMethods(): Promise<{ success: boolean; count: number; methods: SubscriptionPaymentMethodConfig[] }> {
+    const res = await fetch(`${API_BASE}/payment/methods`);
+    return res.json();
+  },
+
+  async getAdminPaymentMethods(): Promise<{ success: boolean; count: number; methods: SubscriptionPaymentMethodConfig[] }> {
+    const res = await fetch(`${API_BASE}/payment/admin/methods`, {
+      headers: getAuthHeaders()
+    });
+    return res.json();
+  },
+
+  async createPaymentMethod(method: Partial<SubscriptionPaymentMethodConfig>): Promise<{ success: boolean; message: string; method: SubscriptionPaymentMethodConfig }> {
+    const res = await fetch(`${API_BASE}/payment/admin/methods`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(method)
+    });
+    return res.json();
+  },
+
+  async updatePaymentMethod(id: string, updates: Partial<SubscriptionPaymentMethodConfig>): Promise<{ success: boolean; message: string; method: SubscriptionPaymentMethodConfig }> {
+    const res = await fetch(`${API_BASE}/payment/admin/methods/${id}`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    return res.json();
+  },
+
+  async togglePaymentMethod(id: string): Promise<{ success: boolean; message: string; method: SubscriptionPaymentMethodConfig }> {
+    const res = await fetch(`${API_BASE}/payment/admin/methods/${id}/toggle`, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+    return res.json();
+  },
+
+  async deletePaymentMethod(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/payment/admin/methods/${id}`, {
+      method: 'DELETE',
       headers: getAuthHeaders()
     });
     return res.json();
