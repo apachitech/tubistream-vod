@@ -145,6 +145,13 @@ export class CatalogService {
     this.titles.splice(idx, 1);
     return true;
   }
+
+  public updateTitleAccessTier(id: string, accessTier: 'free' | 'vip_premium'): Title | null {
+    const title = this.titles.find(t => t.id === id);
+    if (!title) return null;
+    title.accessTier = accessTier;
+    return title;
+  }
 }
 
 export const catalogService = new CatalogService();

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Title } from '../../types';
 import { usePlayer } from '../../context/PlayerContext';
 import { useAuth } from '../../context/AuthContext';
-import { Play, Plus, Check, Heart, ChevronDown, Sparkles } from 'lucide-react';
+import { Play, Plus, Check, Heart, ChevronDown, Sparkles, Crown } from 'lucide-react';
 
 interface MediaCardProps {
   title: Title;
@@ -19,10 +19,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { playTitle } = usePlayer();
-  const { isInMyList, toggleMyList, isLiked, toggleLike } = useAuth();
+  const { user, isInMyList, toggleMyList, isLiked, toggleLike } = useAuth();
 
   const inList = isInMyList(title.id);
   const liked = isLiked(title.id);
+  const isVipOnly = title.accessTier === 'vip_premium';
+  const hasVipAccess = !isVipOnly || user?.tier === 'vip_premium';
 
   const progressPercent =
     progressSeconds && durationSeconds && durationSeconds > 0
@@ -57,7 +59,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           overflow: 'hidden',
           background: 'var(--bg-card)',
           boxShadow: isHovered ? 'var(--shadow-glow)' : 'var(--shadow-card)',
-          border: isHovered ? '1px solid var(--accent-pink)' : '1px solid var(--border-subtle)'
+          border: isHovered 
+            ? isVipOnly ? '1px solid #ffd700' : '1px solid var(--accent-pink)'
+            : '1px solid var(--border-subtle)'
         }}
       >
         <img
@@ -71,6 +75,52 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             transition: 'transform 0.4s ease'
           }}
         />
+
+        {/* Plan Access Badge: VIP Crown vs Free */}
+        {isVipOnly ? (
+          <div
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)',
+              color: '#000',
+              fontSize: '0.62rem',
+              fontWeight: 900,
+              padding: '2px 7px',
+              borderRadius: '4px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              boxShadow: '0 2px 10px rgba(255, 215, 0, 0.5)',
+              zIndex: 5
+            }}
+          >
+            <Crown size={11} fill="#000" /> VIP
+          </div>
+        ) : (
+          <div
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              background: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(0, 245, 212, 0.3)',
+              color: 'var(--accent-green)',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              padding: '2px 6px',
+              borderRadius: '4px',
+              letterSpacing: '0.03em',
+              zIndex: 5
+            }}
+          >
+            FREE
+          </div>
+        )}
 
         {/* Tubi Original Badge */}
         {title.isOriginal && (
@@ -162,21 +212,26 @@ export const MediaCard: React.FC<MediaCardProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (isVipOnly && !hasVipAccess) {
+                    onOpenDetails(title);
+                    return;
+                  }
                   playTitle(title, undefined, progressSeconds || 0);
                 }}
                 style={{
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  background: 'var(--accent-pink)',
+                  background: isVipOnly && !hasVipAccess ? 'linear-gradient(135deg, #ffd700, #ff8c00)' : 'var(--accent-pink)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#fff',
-                  boxShadow: '0 2px 10px rgba(255, 42, 109, 0.6)'
+                  color: isVipOnly && !hasVipAccess ? '#000' : '#fff',
+                  boxShadow: isVipOnly && !hasVipAccess ? '0 2px 10px rgba(255, 215, 0, 0.6)' : '0 2px 10px rgba(255, 42, 109, 0.6)'
                 }}
+                title={isVipOnly && !hasVipAccess ? 'Unlock with Tubi+ VIP' : 'Play'}
               >
-                <Play size={15} fill="#fff" />
+                {isVipOnly && !hasVipAccess ? <Crown size={15} fill="#000" /> : <Play size={15} fill="#fff" />}
               </button>
 
               <button

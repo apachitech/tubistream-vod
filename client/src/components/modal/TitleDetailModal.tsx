@@ -4,17 +4,18 @@ import { usePlayer } from '../../context/PlayerContext';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import {
-  Play, Plus, Check, Heart, X, Sparkles, Star, Film, Clock, ShieldCheck, ChevronRight
+  Play, Plus, Check, Heart, X, Sparkles, Star, Film, Clock, ShieldCheck, ChevronRight, Crown
 } from 'lucide-react';
 
 interface TitleDetailModalProps {
   title: Title | null;
   onClose: () => void;
+  onOpenSubscription?: () => void;
 }
 
-export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClose }) => {
+export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClose, onOpenSubscription }) => {
   const { playTitle } = usePlayer();
-  const { isInMyList, toggleMyList, isLiked, toggleLike } = useAuth();
+  const { user, isInMyList, toggleMyList, isLiked, toggleLike } = useAuth();
   const [similarTitles, setSimilarTitles] = useState<{ title: Title; similarity: number }[]>([]);
   const [selectedSeason, setSelectedSeason] = useState(1);
 
@@ -31,6 +32,8 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
 
   const inList = isInMyList(title.id);
   const liked = isLiked(title.id);
+  const isVipOnly = title.accessTier === 'vip_premium';
+  const hasAccess = !isVipOnly || user?.tier === 'vip_premium';
   const seasons = title.seasons || [];
   const currentSeason = seasons.find((s) => s.seasonNumber === selectedSeason) || seasons[0];
 
@@ -61,7 +64,7 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
           overflowY: 'auto',
           position: 'relative',
           boxShadow: '0 25px 60px rgba(0,0,0,0.95)',
-          border: '1px solid rgba(255, 42, 109, 0.3)'
+          border: isVipOnly ? '1px solid rgba(255, 215, 0, 0.4)' : '1px solid rgba(255, 42, 109, 0.3)'
         }}
       >
         {/* Close Button */}
@@ -117,8 +120,27 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span className="badge-vip">100% FREE STREAM</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                {isVipOnly ? (
+                  <span
+                    style={{
+                      background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)',
+                      color: '#000',
+                      fontWeight: 900,
+                      padding: '3px 9px',
+                      borderRadius: '4px',
+                      fontSize: '0.72rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 2px 10px rgba(255, 215, 0, 0.4)'
+                    }}
+                  >
+                    <Crown size={12} fill="#000" /> TUBI+ VIP EXCLUSIVE
+                  </span>
+                ) : (
+                  <span className="badge-vip">100% FREE STREAM</span>
+                )}
                 <span style={{ color: 'var(--accent-green)', fontWeight: 800 }}>{title.matchScore}% Match</span>
                 <span className="badge-rating">{title.rating}</span>
                 <span style={{ color: 'var(--text-secondary)' }}>{title.releaseYear}</span>
@@ -131,16 +153,42 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                onClick={() => {
-                  onClose();
-                  playTitle(title);
-                }}
-                className="btn-primary"
-                style={{ padding: '14px 28px', fontSize: '1rem', fontWeight: 800 }}
-              >
-                <Play size={18} fill="#fff" /> Watch Now
-              </button>
+              {isVipOnly && !hasAccess ? (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenSubscription?.();
+                  }}
+                  style={{
+                    padding: '14px 26px',
+                    fontSize: '0.98rem',
+                    fontWeight: 900,
+                    borderRadius: 'var(--radius-full)',
+                    background: 'linear-gradient(135deg, #ffd700 0%, #ff9100 100%)',
+                    color: '#000',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 20px rgba(255, 215, 0, 0.5)',
+                    transition: 'transform 0.2s ease'
+                  }}
+                >
+                  <Crown size={18} fill="#000" /> Unlock with Tubi+ VIP
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    onClose();
+                    playTitle(title);
+                  }}
+                  className="btn-primary"
+                  style={{ padding: '14px 28px', fontSize: '1rem', fontWeight: 800 }}
+                >
+                  <Play size={18} fill="#fff" /> Watch Now
+                </button>
+              )}
 
               <button
                 onClick={() => toggleMyList(title.id)}
@@ -165,6 +213,69 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
 
         {/* Modal Body Content */}
         <div style={{ padding: '24px 36px 40px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          {/* VIP Locked Banner for Free Plan Members */}
+          {isVipOnly && !hasAccess && (
+            <div
+              style={{
+                padding: '16px 20px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(255, 140, 0, 0.08) 100%)',
+                border: '1px solid rgba(255, 215, 0, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#000',
+                    flexShrink: 0
+                  }}
+                >
+                  <Crown size={22} fill="#000" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#ffd700', marginBottom: '2px' }}>
+                    VIP Premium Exclusive Film
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#cbd5e1', lineHeight: 1.4 }}>
+                    Stream this title in crisp 4K UHD with zero commercials by subscribing to Tubi+ VIP or having an administrator activate your plan.
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenSubscription?.();
+                }}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
+                  color: '#000',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 10px rgba(255, 215, 0, 0.3)'
+                }}
+              >
+                Upgrade Plan
+              </button>
+            </div>
+          )}
+
           {/* Synopsis & Metadata Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
             <div>

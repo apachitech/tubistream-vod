@@ -88,9 +88,34 @@ export interface Title {
   isFeatured?: boolean;
   isOriginal?: boolean;
   isTrending?: boolean;
+  accessTier?: 'free' | 'vip_premium';
   totalViews: number;
   seasons?: Season[];
   createdAt: string;
+}
+
+export interface PlanTierConfig {
+  id: 'free' | 'vip_premium';
+  name: string;
+  badge: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  adSupported: boolean;
+  maxResolution: '720p' | '1080p' | '4K';
+  audioQuality: 'Stereo' | '5.1 Surround' | 'Dolby Atmos';
+  downloadsEnabled: boolean;
+  watchPartyEnabled: boolean;
+  smartTvEnabled: boolean;
+  maxConcurrentStreams: number;
+  features: string[];
+  isActive: boolean;
+}
+
+export interface PlatformPlanSettings {
+  plans: PlanTierConfig[];
+  requireAuthForFree: boolean;
+  trialDays: number;
+  currency: string;
 }
 
 export interface AdCreative {

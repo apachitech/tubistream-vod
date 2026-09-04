@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Title, FastChannel, AnalyticsSummary, AdCreative } from '../../types';
+import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSettings, PlanTierConfig } from '../../types';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Film, Radio, DollarSign, Activity, Sparkles, Plus, Trash2, Edit3,
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
-  Sliders, Play, Pause, Copy, ExternalLink, ToggleLeft, ToggleRight, Eye, Code, X
+  Sliders, Play, Pause, Copy, ExternalLink, ToggleLeft, ToggleRight, Eye, Code, X,
+  Crown, Search, Shield, Zap
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'fast' | 'ads' | 'ml'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'fast' | 'ads' | 'plans' | 'ml'>('overview');
   const [dashboardData, setDashboardData] = useState<any | null>(null);
   const [titles, setTitles] = useState<Title[]>([]);
   const [channels, setChannels] = useState<FastChannel[]>([]);
   const [ads, setAds] = useState<AdCreative[]>([]);
+  const [planSettings, setPlanSettings] = useState<PlatformPlanSettings | null>(null);
+  const [usersList, setUsersList] = useState<User[]>([]);
+  const [userFilter, setUserFilter] = useState<'all' | 'free' | 'vip_premium'>('all');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [planToast, setPlanToast] = useState<string | null>(null);
   const [adConfig, setAdConfig] = useState<any>({
     prerollEnabled: true,
     midrollEnabled: true,
@@ -55,6 +61,7 @@ export const AdminDashboard: React.FC = () => {
     rating: 'PG-13' as any,
     imdbScore: 8.0,
     matchScore: 95,
+    accessTier: 'free' as 'free' | 'vip_premium',
     posterUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800',
     backdropUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600',
     streamUrl: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
@@ -70,11 +77,13 @@ export const AdminDashboard: React.FC = () => {
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
-      const [dash, tit, chan, adRes] = await Promise.all([
+      const [dash, tit, chan, adRes, plansRes, usersRes] = await Promise.all([
         api.getAdminDashboard(),
         api.getTitles({ limit: 50 }),
         api.getFastChannels(),
-        api.getAdminAds()
+        api.getAdminAds(),
+        api.getAdminPlans(),
+        api.getAdminUsers()
       ]);
       if (dash.success) setDashboardData(dash);
       if (tit.success) setTitles(tit.titles);
@@ -84,10 +93,51 @@ export const AdminDashboard: React.FC = () => {
         if (adRes.config) setAdConfig(adRes.config);
         if (adRes.summary) setAdSummary(adRes.summary);
       }
+      if (plansRes?.success) setPlanSettings(plansRes.planSettings);
+      if (usersRes?.success) setUsersList(usersRes.users);
     } catch (err) {
       console.error('Failed to load admin data', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleUserTier = async (userId: string, targetTier: 'free' | 'vip_premium') => {
+    try {
+      const res = await api.updateUserTier(userId, targetTier);
+      if (res.success) {
+        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, tier: targetTier } : u));
+        setPlanToast(`User plan updated to ${targetTier === 'vip_premium' ? 'Tubi+ VIP Premium 👑' : 'TubiStream Free'}`);
+        setTimeout(() => setPlanToast(null), 3500);
+      }
+    } catch (err) {
+      console.error('Failed to update user tier', err);
+    }
+  };
+
+  const handleSavePlans = async (updatedSettings: Partial<PlatformPlanSettings>) => {
+    try {
+      const res = await api.updateAdminPlans(updatedSettings);
+      if (res.success) {
+        setPlanSettings(res.planSettings);
+        setPlanToast('Plan pricing and subscriber rules updated live!');
+        setTimeout(() => setPlanToast(null), 3500);
+      }
+    } catch (err) {
+      console.error('Failed to update plans', err);
+    }
+  };
+
+  const handleToggleTitleAccess = async (titleId: string, accessTier: 'free' | 'vip_premium') => {
+    try {
+      const res = await api.updateTitleAccessTier(titleId, accessTier);
+      if (res.success) {
+        setTitles(prev => prev.map(t => t.id === titleId ? { ...t, accessTier } : t));
+        setPlanToast(`Title access changed to ${accessTier === 'vip_premium' ? 'VIP Exclusive 👑' : '100% Free for All 🎬'}`);
+        setTimeout(() => setPlanToast(null), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to update title access tier', err);
     }
   };
 
@@ -448,6 +498,23 @@ export const AdminDashboard: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('plans')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            background: activeTab === 'plans' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Crown size={16} color="#ffd700" /> Plan & Subscriber Controls ({usersList.length})
+        </button>
+
+        <button
           onClick={() => setActiveTab('ml')}
           style={{
             padding: '10px 20px',
@@ -640,6 +707,18 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ACCESS PLAN</label>
+                <select
+                  value={newTitle.accessTier}
+                  onChange={(e) => setNewTitle({ ...newTitle, accessTier: e.target.value as any })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: '#12141d', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', marginTop: '4px' }}
+                >
+                  <option value="free">TubiStream Free (All Viewers)</option>
+                  <option value="vip_premium">Tubi+ VIP Exclusive (Subscribers Only)</option>
+                </select>
+              </div>
+
+              <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>IMDb SCORE (0.0 - 10.0)</label>
                 <input
                   type="number"
@@ -727,6 +806,7 @@ export const AdminDashboard: React.FC = () => {
                   <th style={{ padding: '16px' }}>GENRES</th>
                   <th style={{ padding: '16px' }}>RATING</th>
                   <th style={{ padding: '16px' }}>VIEWS</th>
+                  <th style={{ padding: '16px' }}>ACCESS PLAN</th>
                   <th style={{ padding: '16px' }}>ACTIONS</th>
                 </tr>
               </thead>
@@ -748,6 +828,36 @@ export const AdminDashboard: React.FC = () => {
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--accent-green)' }}>
                       {t.totalViews.toLocaleString()}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <button
+                        onClick={() => handleToggleTitleAccess(t.id, t.accessTier === 'vip_premium' ? 'free' : 'vip_premium')}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: t.accessTier === 'vip_premium' ? 'rgba(255, 215, 0, 0.15)' : 'rgba(0, 240, 118, 0.12)',
+                          border: t.accessTier === 'vip_premium' ? '1px solid rgba(255, 215, 0, 0.5)' : '1px solid rgba(0, 240, 118, 0.4)',
+                          color: t.accessTier === 'vip_premium' ? '#ffd700' : '#00f076',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Click to toggle access plan between Free and VIP"
+                      >
+                        {t.accessTier === 'vip_premium' ? (
+                          <>
+                            <Crown size={12} /> VIP Exclusive
+                          </>
+                        ) : (
+                          <>
+                            <Check size={12} /> 100% Free
+                          </>
+                        )}
+                      </button>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <button
@@ -1179,6 +1289,543 @@ export const AdminDashboard: React.FC = () => {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Plans & Subscriber Controls */}
+      {activeTab === 'plans' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          {/* Toast Notification */}
+          {planToast && (
+            <div
+              className="glass-heavy animate-fade-in"
+              style={{
+                position: 'fixed',
+                bottom: '24px',
+                right: '24px',
+                zIndex: 3000,
+                padding: '12px 20px',
+                borderRadius: '10px',
+                background: 'rgba(16, 18, 26, 0.95)',
+                border: '1px solid #ffd700',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+              }}
+            >
+              <Crown size={18} color="#ffd700" />
+              <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{planToast}</span>
+            </div>
+          )}
+
+          {/* Quick Metrics Bar */}
+          {(() => {
+            const freeCount = usersList.filter(u => u.tier !== 'vip_premium').length;
+            const vipCount = usersList.filter(u => u.tier === 'vip_premium').length;
+            const vipPlan = planSettings?.plans.find(p => p.id === 'vip_premium');
+            const estMrr = (vipCount * (vipPlan?.monthlyPrice || 5.99)).toFixed(2);
+
+            return (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '16px'
+                }}
+              >
+                <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                    REGISTERED SUBSCRIBERS
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff' }}>
+                    {usersList.length}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Total user accounts in system
+                  </div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                    TUBISTREAM FREE VIEWERS
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#00f076' }}>
+                    {freeCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#00f076', marginTop: '4px' }}>
+                    Ad-Supported Streaming Active
+                  </div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                    TUBI+ VIP PREMIUM MEMBERS
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ffd700' }}>
+                    {vipCount}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#ffd700', marginTop: '4px' }}>
+                    100% Ad-Free 4K Cinema Pass
+                  </div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                    ESTIMATED RECURRING REVENUE
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#9d4edd' }}>
+                    ${estMrr} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ mo</span>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Based on ${vipPlan?.monthlyPrice || 5.99}/mo VIP rate
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Plan Settings Hub: Edit Free vs VIP Rules */}
+          {planSettings && (
+            <div className="glass-panel" style={{ padding: '28px', borderRadius: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sliders size={20} color="#9d4edd" /> Platform Plan & Feature Configuration
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginTop: '4px' }}>
+                    Control commercial ad insertion, 4K quality caps, offline download permissions, and pricing for each tier.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+                {/* Free Plan Card */}
+                {(() => {
+                  const freePlan = planSettings.plans.find(p => p.id === 'free') || planSettings.plans[0];
+                  return (
+                    <div
+                      style={{
+                        padding: '24px',
+                        borderRadius: '16px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(0, 240, 118, 0.3)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#00f076', background: 'rgba(0, 240, 118, 0.15)', padding: '3px 8px', borderRadius: '4px' }}>
+                            DEFAULT TIER
+                          </span>
+                          <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginTop: '6px' }}>
+                            {freePlan.name}
+                          </h4>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#00f076' }}>$0.00</span>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Forever Free</div>
+                        </div>
+                      </div>
+
+                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Commercial Ad Breaks</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#00f076', background: 'rgba(0, 240, 118, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                            Enabled (Pre-roll & Mid-roll)
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Maximum Resolution Cap</span>
+                          <select
+                            value={freePlan.maxResolution}
+                            onChange={(e) => {
+                              const updatedPlans = planSettings.plans.map(p =>
+                                p.id === 'free' ? { ...p, maxResolution: e.target.value as any } : p
+                              );
+                              handleSavePlans({ plans: updatedPlans });
+                            }}
+                            style={{ background: '#12141d', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem' }}
+                          >
+                            <option value="720p">720p HD</option>
+                            <option value="1080p">1080p Full HD</option>
+                          </select>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Concurrent Streams</span>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#fff' }}>2 Devices</span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Offline Downloads</span>
+                          <span style={{ fontSize: '0.8rem', color: '#ff2a6d', fontWeight: 600 }}>VIP Exclusive Only</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* VIP Premium Plan Card */}
+                {(() => {
+                  const vipPlan = planSettings.plans.find(p => p.id === 'vip_premium') || planSettings.plans[1];
+                  return (
+                    <div
+                      style={{
+                        padding: '24px',
+                        borderRadius: '16px',
+                        background: 'rgba(255, 215, 0, 0.03)',
+                        border: '1px solid rgba(255, 215, 0, 0.4)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#ffd700', background: 'rgba(255, 215, 0, 0.15)', padding: '3px 8px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Crown size={11} /> VIP PREMIUM TIER
+                          </span>
+                          <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffd700', marginTop: '6px' }}>
+                            {vipPlan.name}
+                          </h4>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffd700' }}>
+                            ${vipPlan.monthlyPrice}
+                          </span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/mo</span>
+                        </div>
+                      </div>
+
+                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {/* Price Editors */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>MONTHLY PRICE ($)</label>
+                            <input
+                              type="number"
+                              step="0.5"
+                              value={vipPlan.monthlyPrice}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const updatedPlans = planSettings.plans.map(p =>
+                                  p.id === 'vip_premium' ? { ...p, monthlyPrice: val } : p
+                                );
+                                setPlanSettings({ ...planSettings, plans: updatedPlans });
+                              }}
+                              style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,215,0,0.3)', color: '#ffd700', fontWeight: 700, marginTop: '3px' }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>ANNUAL PRICE ($)</label>
+                            <input
+                              type="number"
+                              step="1"
+                              value={vipPlan.annualPrice}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const updatedPlans = planSettings.plans.map(p =>
+                                  p.id === 'vip_premium' ? { ...p, annualPrice: val } : p
+                                );
+                                setPlanSettings({ ...planSettings, plans: updatedPlans });
+                              }}
+                              style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,215,0,0.3)', color: '#ffd700', fontWeight: 700, marginTop: '3px' }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Perks Toggles */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>100% Ad-Free Bypass</span>
+                          <button
+                            onClick={() => {
+                              const updatedPlans = planSettings.plans.map(p =>
+                                p.id === 'vip_premium' ? { ...p, adSupported: !p.adSupported } : p
+                              );
+                              handleSavePlans({ plans: updatedPlans });
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: !vipPlan.adSupported ? '#00f076' : 'var(--text-muted)' }}
+                          >
+                            {!vipPlan.adSupported ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>4K Ultra HD & HDR Support</span>
+                          <button
+                            onClick={() => {
+                              const updatedPlans = planSettings.plans.map(p =>
+                                p.id === 'vip_premium' ? { ...p, maxResolution: (p.maxResolution === '4K' ? '1080p' : '4K') as '720p' | '1080p' | '4K' } : p
+                              );
+                              handleSavePlans({ plans: updatedPlans });
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: vipPlan.maxResolution === '4K' ? '#00f076' : 'var(--text-muted)' }}
+                          >
+                            {vipPlan.maxResolution === '4K' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Offline Video Downloads</span>
+                          <button
+                            onClick={() => {
+                              const updatedPlans = planSettings.plans.map(p =>
+                                p.id === 'vip_premium' ? { ...p, downloadsEnabled: !p.downloadsEnabled } : p
+                              );
+                              handleSavePlans({ plans: updatedPlans });
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: vipPlan.downloadsEnabled ? '#00f076' : 'var(--text-muted)' }}
+                          >
+                            {vipPlan.downloadsEnabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Dolby Atmos Spatial Audio</span>
+                          <button
+                            onClick={() => {
+                              const updatedPlans = planSettings.plans.map(p =>
+                                p.id === 'vip_premium' ? { ...p, audioQuality: (p.audioQuality === 'Dolby Atmos' ? '5.1 Surround' : 'Dolby Atmos') as 'Stereo' | '5.1 Surround' | 'Dolby Atmos' } : p
+                              );
+                              handleSavePlans({ plans: updatedPlans });
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: vipPlan.audioQuality === 'Dolby Atmos' ? '#00f076' : 'var(--text-muted)' }}
+                          >
+                            {vipPlan.audioQuality === 'Dolby Atmos' ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleSavePlans({ plans: planSettings.plans })}
+                          className="btn-primary"
+                          style={{
+                            marginTop: '6px',
+                            background: 'linear-gradient(135deg, #ffd700 0%, #ff8800 100%)',
+                            color: '#000',
+                            fontWeight: 800,
+                            padding: '9px 16px',
+                            fontSize: '0.84rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <Check size={14} /> Save VIP Pricing & Rule Changes
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* User Subscriber Manager Table */}
+          <div className="glass-panel" style={{ borderRadius: '18px', overflow: 'hidden', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={20} color="var(--accent-pink)" /> Subscriber Directory & Plan Assignment
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginTop: '2px' }}>
+                  Manage individual user subscription plans. 1-click upgrade to VIP or downgrade to Free.
+                </p>
+              </div>
+
+              {/* Filter Pills & Search */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', borderRadius: '8px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.12)', width: '220px' }}>
+                  <Search size={14} color="var(--text-muted)" style={{ marginRight: '8px' }} />
+                  <input
+                    type="text"
+                    placeholder="Filter by name or email..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    style={{ background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: '0.80rem', width: '100%' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => setUserFilter('all')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: userFilter === 'all' ? '#9d4edd' : 'rgba(255,255,255,0.05)',
+                      color: '#fff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    All ({usersList.length})
+                  </button>
+
+                  <button
+                    onClick={() => setUserFilter('free')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: userFilter === 'free' ? 'rgba(0, 240, 118, 0.25)' : 'rgba(255,255,255,0.05)',
+                      color: userFilter === 'free' ? '#00f076' : '#fff',
+                      border: userFilter === 'free' ? '1px solid #00f076' : '1px solid transparent',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Free ({usersList.filter(u => u.tier !== 'vip_premium').length})
+                  </button>
+
+                  <button
+                    onClick={() => setUserFilter('vip_premium')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: userFilter === 'vip_premium' ? 'rgba(255, 215, 0, 0.25)' : 'rgba(255,255,255,0.05)',
+                      color: userFilter === 'vip_premium' ? '#ffd700' : '#fff',
+                      border: userFilter === 'vip_premium' ? '1px solid #ffd700' : '1px solid transparent',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    VIP Premium ({usersList.filter(u => u.tier === 'vip_premium').length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* User List Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '14px 16px' }}>VIEWER</th>
+                    <th style={{ padding: '14px 16px' }}>EMAIL</th>
+                    <th style={{ padding: '14px 16px' }}>ROLE</th>
+                    <th style={{ padding: '14px 16px' }}>ACTIVE PLAN</th>
+                    <th style={{ padding: '14px 16px' }}>PROFILES</th>
+                    <th style={{ padding: '14px 16px' }}>PLAN CONTROLS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usersList
+                    .filter(u => {
+                      if (userFilter === 'free') return u.tier !== 'vip_premium';
+                      if (userFilter === 'vip_premium') return u.tier === 'vip_premium';
+                      return true;
+                    })
+                    .filter(u => {
+                      if (!userSearchQuery.trim()) return true;
+                      const q = userSearchQuery.toLowerCase();
+                      return (u.name?.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+                    })
+                    .map((viewer) => {
+                      const isVip = viewer.tier === 'vip_premium';
+                      return (
+                        <tr key={viewer.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <img
+                                src={viewer.profiles?.[0]?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'}
+                                alt={viewer.name || viewer.email}
+                                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }}
+                              />
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#fff' }}>{viewer.name || 'Viewer'}</div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ID: {viewer.id}</div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
+                            {viewer.email}
+                          </td>
+
+                          <td style={{ padding: '14px 16px' }}>
+                            {viewer.role === 'admin' ? (
+                              <span style={{ fontSize: '0.70rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(157, 78, 221, 0.25)', color: '#e0aaff', border: '1px solid rgba(157, 78, 221, 0.4)', fontWeight: 800 }}>
+                                ADMIN
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.70rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1' }}>
+                                USER
+                              </span>
+                            )}
+                          </td>
+
+                          <td style={{ padding: '14px 16px' }}>
+                            {isVip ? (
+                              <span className="badge-vip" style={{ fontSize: '0.74rem', padding: '3px 9px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <Crown size={12} /> Tubi+ VIP
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.74rem', padding: '3px 9px', borderRadius: '6px', background: 'rgba(0, 240, 118, 0.12)', color: '#00f076', border: '1px solid rgba(0, 240, 118, 0.3)', fontWeight: 700 }}>
+                                TubiStream Free
+                              </span>
+                            )}
+                          </td>
+
+                          <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
+                            {viewer.profiles?.length || 1} Profile{viewer.profiles?.length === 1 ? '' : 's'}
+                          </td>
+
+                          <td style={{ padding: '14px 16px' }}>
+                            {isVip ? (
+                              <button
+                                onClick={() => handleToggleUserTier(viewer.id, 'free')}
+                                className="btn-secondary"
+                                style={{
+                                  padding: '5px 12px',
+                                  fontSize: '0.76rem',
+                                  borderRadius: '6px',
+                                  gap: '5px'
+                                }}
+                                title="Downgrade user account to standard Free plan"
+                              >
+                                Downgrade to Free
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleToggleUserTier(viewer.id, 'vip_premium')}
+                                style={{
+                                  padding: '5px 12px',
+                                  fontSize: '0.76rem',
+                                  borderRadius: '6px',
+                                  background: 'linear-gradient(135deg, #ffd700 0%, #ff8800 100%)',
+                                  color: '#000',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)'
+                                }}
+                                title="Grant user Tubi+ VIP Premium with Ad-Free and 4K perks"
+                              >
+                                <Crown size={12} /> Upgrade to VIP
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

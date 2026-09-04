@@ -1,4 +1,4 @@
-import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative } from '../types';
+import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative, PlatformPlanSettings, PlanTierConfig } from '../types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
 
@@ -438,6 +438,48 @@ export const api = {
       method: 'POST',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
+  // Plan & Subscriber Management
+  async getAdminPlans(): Promise<{ success: boolean; planSettings: PlatformPlanSettings }> {
+    const res = await fetch(`${API_BASE}/admin/plans`, {
+      headers: getAuthHeaders()
+    });
+    return res.json();
+  },
+
+  async updateAdminPlans(settings: Partial<PlatformPlanSettings>): Promise<{ success: boolean; planSettings: PlatformPlanSettings }> {
+    const res = await fetch(`${API_BASE}/admin/plans`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    return res.json();
+  },
+
+  async getAdminUsers(): Promise<{ success: boolean; count: number; users: User[] }> {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      headers: getAuthHeaders()
+    });
+    return res.json();
+  },
+
+  async updateUserTier(userId: string, tier: 'free' | 'vip_premium'): Promise<{ success: boolean; message: string; user: User }> {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}/tier`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier })
+    });
+    return res.json();
+  },
+
+  async updateTitleAccessTier(titleId: string, accessTier: 'free' | 'vip_premium'): Promise<{ success: boolean; message: string; title: Title }> {
+    const res = await fetch(`${API_BASE}/admin/catalog/${titleId}/access`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessTier })
     });
     return res.json();
   }

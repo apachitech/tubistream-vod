@@ -1,4 +1,4 @@
-import { User, UserProfile, DevicePairingCode } from '../types';
+import { User, UserProfile, DevicePairingCode, PlatformPlanSettings, PlanTierConfig } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class AuthService {
@@ -6,6 +6,59 @@ export class AuthService {
   private userPasswords: Map<string, string> = new Map(); // email -> password
   private userTokens: Map<string, string> = new Map(); // token -> userId
   private pairingCodes: Map<string, DevicePairingCode> = new Map();
+
+  private planSettings: PlatformPlanSettings = {
+    currency: 'USD',
+    trialDays: 7,
+    requireAuthForFree: false,
+    plans: [
+      {
+        id: 'free',
+        name: 'TubiStream Free',
+        badge: '100% Free Forever',
+        monthlyPrice: 0,
+        annualPrice: 0,
+        adSupported: true,
+        maxResolution: '1080p',
+        audioQuality: '5.1 Surround',
+        downloadsEnabled: false,
+        watchPartyEnabled: true,
+        smartTvEnabled: true,
+        maxConcurrentStreams: 2,
+        features: [
+          'Over 50,000+ Movies & TV Series',
+          '24/7 Live FAST Linear EPG Channels',
+          'AI-Powered Content Recommendations',
+          'Smart TV & Living Room Pairing',
+          'Standard commercial ad breaks'
+        ],
+        isActive: true
+      },
+      {
+        id: 'vip_premium',
+        name: 'Tubi+ VIP Premium',
+        badge: 'Cinema Pass Ad-Free',
+        monthlyPrice: 5.99,
+        annualPrice: 49.99,
+        adSupported: false,
+        maxResolution: '4K',
+        audioQuality: 'Dolby Atmos',
+        downloadsEnabled: true,
+        watchPartyEnabled: true,
+        smartTvEnabled: true,
+        maxConcurrentStreams: 4,
+        features: [
+          '100% Ad-Free uninterrupted streaming',
+          '4K Ultra HD & HDR Cinema resolution',
+          'Dolby Atmos & Spatial Audio surround',
+          'Offline Video Downloads on Web & Mobile',
+          'Up to 4 Simultaneous Streams',
+          'Early Access to Tubi Originals & VIP Exclusives'
+        ],
+        isActive: true
+      }
+    ]
+  };
 
   constructor() {
     this.seedUsers();
@@ -268,6 +321,37 @@ export class AuthService {
 
   public getUser(userId: string): User | undefined {
     return this.users.get(userId);
+  }
+
+  public getAllUsers(): User[] {
+    const unique = new Map<string, User>();
+    for (const user of this.users.values()) {
+      if (user && user.id) {
+        unique.set(user.id, user);
+      }
+    }
+    return Array.from(unique.values());
+  }
+
+  public updateUserTier(userId: string, tier: 'free' | 'vip_premium'): User | null {
+    const user = this.getUser(userId);
+    if (!user) return null;
+    user.tier = tier;
+    this.saveUser(user);
+    return user;
+  }
+
+  public getPlanSettings(): PlatformPlanSettings {
+    return { ...this.planSettings };
+  }
+
+  public updatePlanSettings(newSettings: Partial<PlatformPlanSettings>): PlatformPlanSettings {
+    this.planSettings = {
+      ...this.planSettings,
+      ...newSettings,
+      plans: newSettings.plans || this.planSettings.plans
+    };
+    return this.getPlanSettings();
   }
 
   public switchProfile(userId: string, profileId: string): UserProfile | null {

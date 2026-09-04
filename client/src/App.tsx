@@ -362,6 +362,7 @@ export const App: React.FC = () => {
       <TitleDetailModal
         title={selectedTitleModal}
         onClose={() => setSelectedTitleModal(null)}
+        onOpenSubscription={() => setIsSubscriptionModalOpen(true)}
       />
 
       {/* Subscription VIP Upgrade Modal */}

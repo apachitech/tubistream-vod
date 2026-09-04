@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Title } from '../../types';
 import { usePlayer } from '../../context/PlayerContext';
 import { useAuth } from '../../context/AuthContext';
-import { Play, Plus, Check, Info, Volume2, VolumeX, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, Plus, Check, Info, Volume2, VolumeX, Sparkles, ChevronRight, ChevronLeft, Crown } from 'lucide-react';
 
 interface HeroBannerProps {
   titles: Title[];
@@ -13,7 +13,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const { playTitle } = usePlayer();
-  const { isInMyList, toggleMyList } = useAuth();
+  const { user, isInMyList, toggleMyList } = useAuth();
 
   useEffect(() => {
     if (titles.length === 0) return;
@@ -100,7 +100,28 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
       >
         <div style={{ maxWidth: '640px' }}>
           {/* Tubi Original / Exclusive Badge */}
-          {currentTitle.isOriginal && (
+          {currentTitle.accessTier === 'vip_premium' ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 140, 0, 0.15))',
+                border: '1px solid rgba(255, 215, 0, 0.5)',
+                color: '#ffd700',
+                padding: '4px 14px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: '16px',
+                boxShadow: '0 2px 12px rgba(255, 215, 0, 0.2)'
+              }}
+            >
+              <Crown size={15} fill="#ffd700" /> Tubi+ VIP Exclusive Premiere
+            </div>
+          ) : currentTitle.isOriginal ? (
             <div
               style={{
                 display: 'inline-flex',
@@ -120,7 +141,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
             >
               <Sparkles size={14} /> Tubi Original Special
             </div>
-          )}
+          ) : null}
 
           {/* Title Heading */}
           <h1
@@ -197,13 +218,35 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
 
           {/* Action CTAs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button
-              onClick={() => playTitle(currentTitle)}
-              className="btn-primary"
-              style={{ padding: '14px 32px', fontSize: '1.05rem', fontWeight: 700 }}
-            >
-              <Play size={20} fill="#fff" /> Watch Free Now
-            </button>
+            {currentTitle.accessTier === 'vip_premium' && user?.tier !== 'vip_premium' ? (
+              <button
+                onClick={() => onOpenDetails(currentTitle)}
+                style={{
+                  padding: '14px 28px',
+                  fontSize: '1.02rem',
+                  fontWeight: 800,
+                  borderRadius: 'var(--radius-full)',
+                  background: 'linear-gradient(135deg, #ffd700 0%, #ff9100 100%)',
+                  color: '#000',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4)'
+                }}
+              >
+                <Crown size={20} fill="#000" /> Watch with VIP
+              </button>
+            ) : (
+              <button
+                onClick={() => playTitle(currentTitle)}
+                className="btn-primary"
+                style={{ padding: '14px 32px', fontSize: '1.05rem', fontWeight: 700 }}
+              >
+                <Play size={20} fill="#fff" /> Watch Free Now
+              </button>
+            )}
 
             <button
               onClick={() => toggleMyList(currentTitle.id)}

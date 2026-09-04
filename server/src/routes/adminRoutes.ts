@@ -162,4 +162,59 @@ router.post('/fast/channel', (req, res) => {
   }
 });
 
+// --- Subscription Plans & User Tier Management ---
+
+// 1. Get current plan configurations & platform pricing
+router.get('/plans', (req, res) => {
+  const planSettings = authService.getPlanSettings();
+  res.json({ success: true, planSettings });
+});
+
+// 2. Update plan configurations (pricing, perks, feature flags)
+router.put('/plans', (req, res) => {
+  try {
+    const planSettings = authService.updatePlanSettings(req.body);
+    // If VIP ad-free bypass was changed, also sync with ad engine
+    const vipPlan = planSettings.plans.find(p => p.id === 'vip_premium');
+    if (vipPlan) {
+      adEngineService.updateConfig({ vipAdFreeBypass: !vipPlan.adSupported });
+    }
+    res.json({ success: true, planSettings });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 3. List all registered users with their current plans
+router.get('/users', (req, res) => {
+  const users = authService.getAllUsers();
+  res.json({ success: true, count: users.length, users });
+});
+
+// 4. Update a user's subscription tier (Free <-> VIP Premium)
+router.patch('/users/:id/tier', (req, res) => {
+  const { tier } = req.body;
+  if (!tier || !['free', 'vip_premium'].includes(tier)) {
+    return res.status(400).json({ success: false, message: 'Valid tier (free or vip_premium) is required' });
+  }
+  const user = authService.updateUserTier(req.params.id, tier);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+  res.json({ success: true, message: `Successfully updated user plan to ${tier === 'vip_premium' ? 'Tubi+ VIP Premium' : 'TubiStream Free'}`, user });
+});
+
+// 5. Update a title's access tier (Free <-> VIP Exclusive)
+router.patch('/catalog/:id/access', (req, res) => {
+  const { accessTier } = req.body;
+  if (!accessTier || !['free', 'vip_premium'].includes(accessTier)) {
+    return res.status(400).json({ success: false, message: 'Valid accessTier (free or vip_premium) is required' });
+  }
+  const title = catalogService.updateTitleAccessTier(req.params.id, accessTier);
+  if (!title) {
+    return res.status(404).json({ success: false, message: 'Title not found' });
+  }
+  res.json({ success: true, message: `Title access set to ${accessTier}`, title });
+});
+
 export default router;

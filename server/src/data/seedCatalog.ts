@@ -110,6 +110,7 @@ export const SEED_TITLES: Title[] = [
     isFeatured: true,
     isOriginal: false,
     isTrending: true,
+    accessTier: 'vip_premium',
     totalViews: 980200,
     createdAt: '2025-02-10T00:00:00Z'
   },
