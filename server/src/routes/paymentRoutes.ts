@@ -22,7 +22,19 @@ const resolveUser = (req: any) => {
 router.post('/subscribe', async (req, res) => {
   try {
     const authUser = resolveUser(req);
-    const userId = req.body.userId || authUser?.id || 'usr-default-tubi-fan';
+    const memberId = authUser?.id || req.body.userId;
+    const memberUser = memberId ? authService.getUser(memberId) : null;
+
+    // Strict Enforcement: Only registered members can pay or checkout securely
+    if (!memberUser || memberUser.isGuest || !memberUser.email || memberUser.email.includes('@tubistream.local')) {
+      return res.status(401).json({
+        success: false,
+        requiresAuth: true,
+        message: 'Only registered members can pay or checkout securely. Please sign in or create an account to subscribe.'
+      });
+    }
+
+    const userId = memberUser.id;
     const { planTier, billingCycle, paymentMethod, cardDetails, mobileMoneyDetails } = req.body;
 
     if (!paymentMethod || !['card', 'mobile_money'].includes(paymentMethod)) {
@@ -69,8 +81,13 @@ router.post('/subscribe', async (req, res) => {
 // 2. Get Authenticated User Payment History
 router.get('/history', (req, res) => {
   const user = resolveUser(req);
-  if (!user) {
-    return res.json({ success: true, transactions: [] });
+  if (!user || user.isGuest || !user.email || user.email.includes('@tubistream.local')) {
+    return res.status(401).json({
+      success: false,
+      requiresAuth: true,
+      message: 'Only registered members can access subscription billing history.',
+      transactions: []
+    });
   }
   const transactions = paymentService.getUserTransactions(user.id);
   res.json({ success: true, transactions });

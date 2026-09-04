@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PaymentMethodType, MobileMoneyProvider, PaymentTransaction } from '../../types';
 import {
   Crown, Check, X, Sparkles, ShieldCheck, Zap, Lock, CreditCard,
-  Smartphone, ArrowRight, RefreshCw, Download, AlertCircle
+  Smartphone, ArrowRight, RefreshCw, Download, AlertCircle, UserCheck, LogIn
 } from 'lucide-react';
 
 interface SubscriptionModalProps {
@@ -12,7 +12,7 @@ interface SubscriptionModalProps {
 }
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }) => {
-  const { user, upgradeToVip } = useAuth();
+  const { user, upgradeToVip, isAuthenticated, isGuest, openAuthModal } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('card');
   
@@ -71,6 +71,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    // Enforce: Only registered members can pay or checkout securely
+    if (!isAuthenticated || isGuest) {
+      setErrorMessage('Only registered members can pay or checkout securely. Please sign in or create an account.');
+      onClose();
+      openAuthModal('signin');
+      return;
+    }
+
     setIsProcessing(true);
 
     if (paymentMethod === 'mobile_money') {
@@ -356,6 +365,109 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '28px', alignItems: 'start' }}>
               {/* Left Column: Payment Form */}
               <div>
+                {/* Registered Member Verification Banner / Gate */}
+                {!isAuthenticated || isGuest ? (
+                  <div
+                    style={{
+                      padding: '18px 20px',
+                      borderRadius: '16px',
+                      background: 'rgba(255, 42, 109, 0.08)',
+                      border: '1.5px solid rgba(255, 42, 109, 0.4)',
+                      marginBottom: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ padding: '8px', borderRadius: '50%', background: 'rgba(255, 42, 109, 0.2)', color: '#ff2a6d' }}>
+                        <Lock size={18} />
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                          Registered Member Account Required
+                        </h4>
+                        <span style={{ fontSize: '0.78rem', color: '#ff2a6d', fontWeight: 700 }}>
+                          Only registered members can pay or checkout securely
+                        </span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                      To securely protect your payment credentials and link your VIP ad-free access & 4K benefits across your devices, please sign in or register before checking out.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          openAuthModal('signin');
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '9px 14px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #ffd700 0%, #ff8800 100%)',
+                          color: '#000',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <LogIn size={14} /> Sign In to Account
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          openAuthModal('register');
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '9px 14px',
+                          borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.08)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#fff',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Create Free Account
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      background: 'rgba(0, 240, 118, 0.08)',
+                      border: '1px solid rgba(0, 240, 118, 0.25)',
+                      marginBottom: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ShieldCheck size={16} color="#00f076" />
+                      <span style={{ color: '#fff', fontWeight: 600 }}>
+                        Secure Checkout for: <strong style={{ color: '#00f076' }}>{user?.email}</strong>
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.70rem', background: 'rgba(0, 240, 118, 0.2)', color: '#00f076', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                      VERIFIED MEMBER
+                    </span>
+                  </div>
+                )}
+
                 {/* Method Switcher Tabs: Card vs Mobile Money */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
                   <button
@@ -626,20 +738,27 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
                       marginTop: '22px',
                       padding: '14px',
                       borderRadius: '12px',
-                      background: 'linear-gradient(135deg, #ffd700 0%, #ff8800 100%)',
-                      color: '#000',
+                      background: (!isAuthenticated || isGuest)
+                        ? 'linear-gradient(135deg, rgba(255, 42, 109, 0.25) 0%, rgba(255, 42, 109, 0.1) 100%)'
+                        : 'linear-gradient(135deg, #ffd700 0%, #ff8800 100%)',
+                      color: (!isAuthenticated || isGuest) ? '#ff4d84' : '#000',
+                      border: (!isAuthenticated || isGuest) ? '1px solid #ff2a6d' : 'none',
                       fontWeight: 900,
                       fontSize: '1rem',
-                      boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4)',
+                      boxShadow: (!isAuthenticated || isGuest) ? 'none' : '0 4px 20px rgba(255, 215, 0, 0.4)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      cursor: isProcessing ? 'wait' : 'pointer',
-                      border: 'none'
+                      cursor: isProcessing ? 'wait' : 'pointer'
                     }}
                   >
-                    {isProcessing ? (
+                    {(!isAuthenticated || isGuest) ? (
+                      <>
+                        <Lock size={16} />
+                        Sign In or Register to Checkout Securely
+                      </>
+                    ) : isProcessing ? (
                       ussdWaiting ? (
                         <>
                           <RefreshCw size={16} className="animate-spin" />

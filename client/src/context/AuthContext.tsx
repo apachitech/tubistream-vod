@@ -218,7 +218,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const upgradeToVip = async (paymentPayload?: Partial<SubscriptionPaymentRequest>): Promise<{ success: boolean; message?: string; transaction?: PaymentTransaction }> => {
-    if (!user) return { success: false, message: 'Please sign in to complete subscription' };
+    if (!user || isGuest || !isAuthenticated) {
+      openAuthModal('signin');
+      return { success: false, message: 'Only registered members can pay or checkout securely. Please sign in or create an account.' };
+    }
     try {
       if (paymentPayload && paymentPayload.paymentMethod) {
         const payload: SubscriptionPaymentRequest = {
