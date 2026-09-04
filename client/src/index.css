@@ -318,3 +318,35 @@ button {
   box-shadow: 0 0 14px rgba(5, 217, 232, 0.35);
 }
 
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.nav-dropdown-item:hover {
+  color: #ffffff;
+  background: rgba(255, 42, 109, 0.18);
+  border-color: rgba(255, 42, 109, 0.4);
+  transform: translateX(2px);
+}
+
+.nav-dropdown-item.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(255, 42, 109, 0.28) 0%, rgba(255, 110, 0, 0.18) 100%);
+  border-color: rgba(255, 42, 109, 0.6);
+}
+
+
