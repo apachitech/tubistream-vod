@@ -433,15 +433,6 @@ export const api = {
     return res.json();
   },
 
-  async createFastChannel(data: any): Promise<any> {
-    const res = await fetch(`${API_BASE}/admin/fast/channel`, {
-      method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  },
-
   // Plan & Subscriber Management
   async getAdminPlans(): Promise<{ success: boolean; planSettings: PlatformPlanSettings }> {
     const res = await fetch(`${API_BASE}/admin/plans`, {
@@ -480,6 +471,33 @@ export const api = {
       method: 'PATCH',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ accessTier })
+    });
+    return res.json();
+  },
+
+  // Admin FAST Channel Management
+  async createFastChannel(channel: Partial<FastChannel>): Promise<{ success: boolean; message: string; channel: FastChannel }> {
+    const res = await fetch(`${API_BASE}/admin/fast/channels`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(channel)
+    });
+    return res.json();
+  },
+
+  async updateFastChannel(id: string, updates: Partial<FastChannel>): Promise<{ success: boolean; message: string; channel: FastChannel }> {
+    const res = await fetch(`${API_BASE}/admin/fast/channels/${id}`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    return res.json();
+  },
+
+  async deleteFastChannel(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/admin/fast/channels/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     return res.json();
   }

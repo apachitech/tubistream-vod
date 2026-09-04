@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Film, Radio, DollarSign, Activity, Sparkles, Plus, Trash2, Edit3,
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
   Sliders, Play, Pause, Copy, ExternalLink, ToggleLeft, ToggleRight, Eye, Code, X,
-  Crown, Search, Shield, Zap
+  Crown, Search, Shield, Zap, Tv
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -21,6 +21,24 @@ export const AdminDashboard: React.FC = () => {
   const [userFilter, setUserFilter] = useState<'all' | 'free' | 'vip_premium'>('all');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [planToast, setPlanToast] = useState<string | null>(null);
+
+  // FAST TV Channel Management State
+  const [isAddChannelOpen, setIsAddChannelOpen] = useState(false);
+  const [fastToast, setFastToast] = useState<string | null>(null);
+  const [editingChannel, setEditingChannel] = useState<FastChannel | null>(null);
+  const [previewChannel, setPreviewChannel] = useState<FastChannel | null>(null);
+  const [fastSearchQuery, setFastSearchQuery] = useState('');
+  const [fastCategoryFilter, setFastCategoryFilter] = useState('all');
+  const [copiedStreamId, setCopiedStreamId] = useState<string | null>(null);
+
+  const [newChannel, setNewChannel] = useState({
+    name: '',
+    channelNumber: 107,
+    category: 'Action' as 'News' | 'Movies' | 'Comedy' | 'Action' | 'Sci-Fi' | 'Anime' | 'Documentary' | 'Sports' | 'Kids',
+    logoUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&auto=format&fit=crop&q=80',
+    description: '',
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+  });
   const [adConfig, setAdConfig] = useState<any>({
     prerollEnabled: true,
     midrollEnabled: true,
@@ -138,6 +156,67 @@ export const AdminDashboard: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to update title access tier', err);
+    }
+  };
+
+  const handleCreateFastChannel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChannel.name.trim() || !newChannel.streamUrl.trim()) return;
+
+    try {
+      const res = await api.createFastChannel({
+        name: newChannel.name.trim(),
+        channelNumber: Number(newChannel.channelNumber) || undefined,
+        category: newChannel.category,
+        logoUrl: newChannel.logoUrl.trim(),
+        description: newChannel.description.trim() || `24/7 continuous linear streaming for ${newChannel.name}`,
+        streamUrl: newChannel.streamUrl.trim()
+      });
+
+      if (res.success) {
+        setChannels(prev => [...prev, res.channel].sort((a, b) => a.channelNumber - b.channelNumber));
+        setFastToast(`FAST Channel "${res.channel.name}" (CH ${res.channel.channelNumber}) launched live!`);
+        setIsAddChannelOpen(false);
+        setNewChannel({
+          name: '',
+          channelNumber: res.channel.channelNumber + 1,
+          category: 'Action',
+          logoUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&auto=format&fit=crop&q=80',
+          description: '',
+          streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+        });
+        setTimeout(() => setFastToast(null), 3500);
+      }
+    } catch (err) {
+      console.error('Create FAST channel failed', err);
+    }
+  };
+
+  const handleUpdateFastChannel = async (id: string, updates: Partial<FastChannel>) => {
+    try {
+      const res = await api.updateFastChannel(id, updates);
+      if (res.success) {
+        setChannels(prev => prev.map(c => c.id === id ? res.channel : c).sort((a, b) => a.channelNumber - b.channelNumber));
+        setEditingChannel(null);
+        setFastToast(`FAST Channel "${res.channel.name}" updated successfully!`);
+        setTimeout(() => setFastToast(null), 3500);
+      }
+    } catch (err) {
+      console.error('Update FAST channel failed', err);
+    }
+  };
+
+  const handleDeleteFastChannel = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to decommission and delete FAST Channel "${name}"?`)) return;
+    try {
+      const res = await api.deleteFastChannel(id);
+      if (res.success) {
+        setChannels(prev => prev.filter(c => c.id !== id));
+        setFastToast(`Channel "${name}" deleted from live broadcast lineup.`);
+        setTimeout(() => setFastToast(null), 3500);
+      }
+    } catch (err) {
+      console.error('Delete FAST channel failed', err);
     }
   };
 
@@ -876,21 +955,869 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 3: FAST Live Channels */}
+      {/* Tab 3: FAST Live Channels Management */}
       {activeTab === 'fast' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-            {channels.map((chan) => (
-              <div key={chan.id} className="glass-panel" style={{ padding: '20px', borderRadius: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <img src={chan.logoUrl} alt={chan.name} style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          {/* FAST Toast Notification */}
+          {fastToast && (
+            <div
+              className="glass-panel animate-fade-in"
+              style={{
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: 'rgba(0, 240, 118, 0.15)',
+                border: '1px solid var(--accent-green)',
+                color: '#00f076',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Radio size={18} /> {fastToast}
+              </div>
+              <button
+                onClick={() => setFastToast(null)}
+                style={{ color: '#00f076', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* FAST Header & Control Bar */}
+          <div
+            className="glass-panel"
+            style={{
+              padding: '28px',
+              borderRadius: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '20px'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span
+                  style={{
+                    background: 'linear-gradient(135deg, #00f076 0%, #00b4d8 100%)',
+                    color: '#000',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.04em'
+                  }}
+                >
+                  LINEAR BROADCAST CMS
+                </span>
+                <span style={{ color: '#00f076', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00f076', display: 'inline-block', boxShadow: '0 0 8px #00f076' }} />
+                  24/7 EPG Clock Synced
+                </span>
+              </div>
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#fff', marginBottom: '6px' }}>
+                Live FAST TV Channel Operations
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '680px' }}>
+                Broadcast live HLS linear streams, configure channel numbering, curate rolling 24-hour EPG schedules, and monitor on-air playback in real time.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsAddChannelOpen(!isAddChannelOpen)}
+              className="btn-primary"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 22px',
+                fontSize: '0.92rem',
+                fontWeight: 800,
+                background: isAddChannelOpen ? 'rgba(255,255,255,0.1)' : 'var(--accent-gradient)'
+              }}
+            >
+              {isAddChannelOpen ? <X size={18} /> : <Plus size={18} />}
+              {isAddChannelOpen ? 'Close Ingestion Form' : 'Broadcast New FAST Channel'}
+            </button>
+          </div>
+
+          {/* Quick Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="glass-panel" style={{ padding: '18px 22px', borderRadius: '14px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                ACTIVE LIVE CHANNELS
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff' }}>
+                {channels.length}
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#00f076', marginTop: '4px', fontWeight: 700 }}>
+                ● 100% Broadcast Uptime
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px 22px', borderRadius: '14px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                BROADCAST PROTOCOLS
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#00b4d8' }}>
+                HLS / DASH
+              </div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Low-latency adaptive bitrate
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px 22px', borderRadius: '14px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                EPG PROGRAMMING SLOTS
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ffd700' }}>
+                {channels.reduce((acc, c) => acc + (c.schedule?.length || 0), 0)} Slots
+              </div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                6-hr rolling window per channel
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px 22px', borderRadius: '14px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '6px' }}>
+                NEXT CHANNEL NUMBER
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--accent-pink)' }}>
+                CH {channels.length > 0 ? Math.max(...channels.map(c => c.channelNumber || 100)) + 1 : 101}
+              </div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Auto-assigned sequentially
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible FAST Channel Ingestion Form */}
+          {isAddChannelOpen && (
+            <form
+              onSubmit={handleCreateFastChannel}
+              className="glass-panel animate-fade-in"
+              style={{
+                padding: '28px',
+                borderRadius: '20px',
+                border: '1px solid rgba(0, 240, 118, 0.4)',
+                background: 'rgba(9, 10, 15, 0.95)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: '#00f076', fontWeight: 800 }}>CH {chan.channelNumber} • {chan.category}</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{chan.name}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>{chan.description}</div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+                    New FAST Channel Broadcast Ingestion
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
+                    Configure the live linear transmission stream, channel metadata, and broadcast schedule.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '4px' }}>
+                    Quick HLS Presets:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewChannel(prev => ({
+                        ...prev,
+                        name: 'NASA TV Live HD',
+                        category: 'Documentary',
+                        streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+                        logoUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=200&auto=format&fit=crop&q=80',
+                        description: 'Official 24/7 space exploration, deep astronomy missions, and rocket launches.'
+                      }));
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                  >
+                    🚀 NASA Live
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewChannel(prev => ({
+                        ...prev,
+                        name: 'Tubi CineVault HD',
+                        category: 'Movies',
+                        streamUrl: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
+                        logoUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=200&auto=format&fit=crop&q=80',
+                        description: '24/7 curated indie masterpieces, festival winners, and Hollywood cinema classics.'
+                      }));
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                  >
+                    🎬 CineVault
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewChannel(prev => ({
+                        ...prev,
+                        name: 'Action Velocity TV',
+                        category: 'Action',
+                        streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+                        logoUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&auto=format&fit=crop&q=80',
+                        description: 'Non-stop high-octane car chases, martial arts combat, and explosive blockbusters.'
+                      }));
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                  >
+                    🔥 Action Velocity
+                  </button>
                 </div>
               </div>
-            ))}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+                {/* Channel Name */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Channel Display Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Tubi Crime & Noir 24/7"
+                    value={newChannel.name}
+                    onChange={(e) => setNewChannel({ ...newChannel, name: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                  />
+                </div>
+
+                {/* Channel Number */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Channel Position (EPG Number) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    max={999}
+                    value={newChannel.channelNumber}
+                    onChange={(e) => setNewChannel({ ...newChannel, channelNumber: parseInt(e.target.value) || 101 })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Programming Category *
+                  </label>
+                  <select
+                    value={newChannel.category}
+                    onChange={(e) => setNewChannel({ ...newChannel, category: e.target.value as any })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#12141d', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                  >
+                    <option value="Action">Action</option>
+                    <option value="Movies">Movies & Cinema</option>
+                    <option value="Sci-Fi">Sci-Fi & Fantasy</option>
+                    <option value="Comedy">Comedy & Sitcoms</option>
+                    <option value="News">Live 24/7 News</option>
+                    <option value="Documentary">Documentary & Nature</option>
+                    <option value="Sports">Sports & Extreme</option>
+                    <option value="Anime">Anime & Animation</option>
+                    <option value="Kids">Kids & Family</option>
+                  </select>
+                </div>
+
+                {/* Logo URL */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Channel Logo Artwork URL
+                  </label>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <input
+                      type="url"
+                      placeholder="https://images.unsplash.com/..."
+                      value={newChannel.logoUrl}
+                      onChange={(e) => setNewChannel({ ...newChannel, logoUrl: e.target.value })}
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                    />
+                    {newChannel.logoUrl && (
+                      <img
+                        src={newChannel.logoUrl}
+                        alt="Logo Preview"
+                        style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)' }}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Live Stream URL */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Live HLS / DASH Streaming Manifest URL (.m3u8) *
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8"
+                    value={newChannel.streamUrl}
+                    onChange={(e) => setNewChannel({ ...newChannel, streamUrl: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#00f076', fontFamily: 'monospace', fontSize: '0.86rem' }}
+                  />
+                </div>
+
+                {/* Description */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Channel Slogan & Synopsis
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Brief description of programming broadcast on this channel"
+                    value={newChannel.description}
+                    onChange={(e) => setNewChannel({ ...newChannel, description: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsAddChannelOpen(false)}
+                  className="btn-secondary"
+                  style={{ padding: '10px 20px', fontSize: '0.88rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{
+                    padding: '10px 24px',
+                    fontSize: '0.92rem',
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #00f076 0%, #00b4d8 100%)',
+                    color: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Radio size={16} /> Broadcast & Launch Channel 📡
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Filter Bar & Search */}
+          <div
+            className="glass-panel"
+            style={{
+              padding: '16px 20px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              flexWrap: 'wrap'
+            }}
+          >
+            {/* Search Input */}
+            <div style={{ position: 'relative', flex: '1 1 260px' }}>
+              <Search
+                size={16}
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
+              />
+              <input
+                type="text"
+                placeholder="Search channels by name, category, or CH number..."
+                value={fastSearchQuery}
+                onChange={(e) => setFastSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px 9px 36px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: '#fff',
+                  fontSize: '0.88rem'
+                }}
+              />
+            </div>
+
+            {/* Category Filter Pills */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {['all', 'Action', 'Movies', 'Sci-Fi', 'Comedy', 'News', 'Documentary'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setFastCategoryFilter(cat)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: fastCategoryFilter === cat ? '#00f076' : 'rgba(255,255,255,0.06)',
+                    color: fastCategoryFilter === cat ? '#000' : 'var(--text-secondary)',
+                    border: 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {cat === 'all' ? `All (${channels.length})` : cat}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* FAST Channels Broadcast Table */}
+          <div className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+              <thead>
+                <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '16px' }}>CHANNEL</th>
+                  <th style={{ padding: '16px' }}>NAME & SYNOPSIS</th>
+                  <th style={{ padding: '16px' }}>CATEGORY</th>
+                  <th style={{ padding: '16px' }}>ON AIR PROGRAM</th>
+                  <th style={{ padding: '16px' }}>LIVE STREAM</th>
+                  <th style={{ padding: '16px' }}>STATUS</th>
+                  <th style={{ padding: '16px', textAlign: 'right' }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {channels
+                  .filter((c) => {
+                    const matchesSearch =
+                      c.name.toLowerCase().includes(fastSearchQuery.toLowerCase()) ||
+                      c.category.toLowerCase().includes(fastSearchQuery.toLowerCase()) ||
+                      c.channelNumber.toString().includes(fastSearchQuery);
+                    const matchesCategory =
+                      fastCategoryFilter === 'all' ||
+                      c.category.toLowerCase() === fastCategoryFilter.toLowerCase();
+                    return matchesSearch && matchesCategory;
+                  })
+                  .map((chan) => (
+                    <tr
+                      key={chan.id}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      {/* Logo & CH Number */}
+                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <img
+                            src={chan.logoUrl}
+                            alt={chan.name}
+                            style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.15)' }}
+                          />
+                          <span
+                            style={{
+                              background: 'rgba(0, 240, 118, 0.15)',
+                              border: '1px solid rgba(0, 240, 118, 0.3)',
+                              color: '#00f076',
+                              fontWeight: 900,
+                              fontSize: '0.82rem',
+                              padding: '3px 8px',
+                              borderRadius: '6px'
+                            }}
+                          >
+                            CH {chan.channelNumber}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Name & Synopsis */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.94rem' }}>
+                          {chan.name}
+                        </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '2px', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {chan.description}
+                        </div>
+                      </td>
+
+                      {/* Category */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            background: 'rgba(255, 42, 109, 0.12)',
+                            color: '#ff2a6d',
+                            border: '1px solid rgba(255, 42, 109, 0.25)',
+                            padding: '3px 9px',
+                            borderRadius: '5px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {chan.category}
+                        </span>
+                      </td>
+
+                      {/* Current Program */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ color: '#cbd5e1', fontWeight: 700, fontSize: '0.84rem' }}>
+                          {chan.currentProgram?.title || 'Live 24/7 Stream'}
+                        </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '1px' }}>
+                          {chan.currentProgram?.rating ? `${chan.currentProgram.rating} • ` : ''} 60m Block
+                        </div>
+                      </td>
+
+                      {/* Live Stream URL & Copy */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span
+                            style={{
+                              fontFamily: 'monospace',
+                              fontSize: '0.74rem',
+                              color: '#00f076',
+                              background: 'rgba(0, 240, 118, 0.08)',
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              maxWidth: '160px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                          >
+                            HLS (.m3u8)
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(chan.streamUrl);
+                              setCopiedStreamId(chan.id);
+                              setTimeout(() => setCopiedStreamId(null), 2000);
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px' }}
+                            title="Copy Live Stream URL"
+                          >
+                            {copiedStreamId === chan.id ? <Check size={14} color="#00f076" /> : <Copy size={14} />}
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: '#00f076',
+                            fontSize: '0.76rem',
+                            fontWeight: 800
+                          }}
+                        >
+                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#00f076', boxShadow: '0 0 6px #00f076' }} />
+                          ON AIR
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {/* Test Stream Button */}
+                          <button
+                            onClick={() => setPreviewChannel(chan)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'rgba(0, 240, 118, 0.12)',
+                              border: '1px solid rgba(0, 240, 118, 0.3)',
+                              color: '#00f076',
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                            title="Test & Preview Live Stream"
+                          >
+                            <Play size={12} fill="#00f076" /> Preview
+                          </button>
+
+                          {/* Edit Button */}
+                          <button
+                            onClick={() => setEditingChannel(chan)}
+                            style={{
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              color: '#fff',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              cursor: 'pointer'
+                            }}
+                            title="Edit Channel Details"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => handleDeleteFastChannel(chan.id, chan.name)}
+                            style={{
+                              background: 'rgba(255, 42, 109, 0.1)',
+                              border: '1px solid rgba(255, 42, 109, 0.3)',
+                              color: '#ff2a6d',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              cursor: 'pointer'
+                            }}
+                            title="Delete FAST Channel"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Live Stream Tester Modal */}
+          {previewChannel && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.85)',
+                backdropFilter: 'blur(10px)',
+                zIndex: 2500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '24px'
+              }}
+              onClick={() => setPreviewChannel(null)}
+            >
+              <div
+                className="glass-panel animate-fade-in"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: '100%',
+                  maxWidth: '720px',
+                  borderRadius: '20px',
+                  overflow: 'hidden',
+                  background: '#090a0f',
+                  border: '1px solid rgba(0, 240, 118, 0.4)',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.9)'
+                }}
+              >
+                {/* Modal Header */}
+                <div
+                  style={{
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img
+                      src={previewChannel.logoUrl}
+                      alt={previewChannel.name}
+                      style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.98rem' }}>
+                        {previewChannel.name} (CH {previewChannel.channelNumber})
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#00f076', fontWeight: 700 }}>
+                        ● Live Linear Stream Preview • {previewChannel.category}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setPreviewChannel(null)}
+                    style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '6px' }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Video Player */}
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000' }}>
+                  <video
+                    src={previewChannel.streamUrl}
+                    controls
+                    autoPlay
+                    playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+
+                {/* Modal Footer Info */}
+                <div style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Stream URL: <span style={{ fontFamily: 'monospace', color: '#00f076' }}>{previewChannel.streamUrl}</span>
+                  </div>
+                  <button
+                    onClick={() => setPreviewChannel(null)}
+                    className="btn-secondary"
+                    style={{ padding: '6px 14px', fontSize: '0.82rem' }}
+                  >
+                    Close Preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Channel Modal */}
+          {editingChannel && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.85)',
+                backdropFilter: 'blur(10px)',
+                zIndex: 2500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '24px'
+              }}
+              onClick={() => setEditingChannel(null)}
+            >
+              <div
+                className="glass-panel animate-fade-in"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: '100%',
+                  maxWidth: '580px',
+                  borderRadius: '20px',
+                  padding: '28px',
+                  background: '#090a0f',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.9)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+                    Edit FAST Channel: {editingChannel.name}
+                  </h3>
+                  <button
+                    onClick={() => setEditingChannel(null)}
+                    style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                      Channel Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editingChannel.name}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, name: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                        Channel Number
+                      </label>
+                      <input
+                        type="number"
+                        value={editingChannel.channelNumber}
+                        onChange={(e) => setEditingChannel({ ...editingChannel, channelNumber: parseInt(e.target.value) || editingChannel.channelNumber })}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                        Category
+                      </label>
+                      <select
+                        value={editingChannel.category}
+                        onChange={(e) => setEditingChannel({ ...editingChannel, category: e.target.value as any })}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#12141d', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                      >
+                        <option value="Action">Action</option>
+                        <option value="Movies">Movies & Cinema</option>
+                        <option value="Sci-Fi">Sci-Fi & Fantasy</option>
+                        <option value="Comedy">Comedy & Sitcoms</option>
+                        <option value="News">Live 24/7 News</option>
+                        <option value="Documentary">Documentary & Nature</option>
+                        <option value="Sports">Sports & Extreme</option>
+                        <option value="Anime">Anime & Animation</option>
+                        <option value="Kids">Kids & Family</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                      Stream URL (.m3u8)
+                    </label>
+                    <input
+                      type="url"
+                      value={editingChannel.streamUrl}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, streamUrl: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#00f076', fontFamily: 'monospace', fontSize: '0.86rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                      Logo URL
+                    </label>
+                    <input
+                      type="url"
+                      value={editingChannel.logoUrl}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, logoUrl: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                      Description
+                    </label>
+                    <input
+                      type="text"
+                      value={editingChannel.description}
+                      onChange={(e) => setEditingChannel({ ...editingChannel, description: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingChannel(null)}
+                    className="btn-secondary"
+                    style={{ padding: '8px 18px', fontSize: '0.86rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateFastChannel(editingChannel.id, editingChannel)}
+                    className="btn-primary"
+                    style={{ padding: '8px 20px', fontSize: '0.88rem', fontWeight: 800 }}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

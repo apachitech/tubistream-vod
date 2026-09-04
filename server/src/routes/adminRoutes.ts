@@ -217,4 +217,47 @@ router.patch('/catalog/:id/access', (req, res) => {
   res.json({ success: true, message: `Title access set to ${accessTier}`, title });
 });
 
+// 6. Admin Create New FAST TV Channel
+router.post('/fast/channels', (req, res) => {
+  const { name, category, streamUrl } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ success: false, message: 'Channel name is required' });
+  }
+  if (!streamUrl || !streamUrl.trim()) {
+    return res.status(400).json({ success: false, message: 'Live HLS/DASH stream URL is required' });
+  }
+
+  const channel = fastLinearService.addChannel(req.body);
+  res.status(201).json({
+    success: true,
+    message: `FAST Channel "${channel.name}" (CH ${channel.channelNumber}) created and broadcast live!`,
+    channel
+  });
+});
+
+// 7. Admin Update Existing FAST TV Channel
+router.put('/fast/channels/:id', (req, res) => {
+  const updated = fastLinearService.updateChannel(req.params.id, req.body);
+  if (!updated) {
+    return res.status(404).json({ success: false, message: 'FAST Channel not found' });
+  }
+  res.json({
+    success: true,
+    message: `FAST Channel "${updated.name}" updated successfully`,
+    channel: updated
+  });
+});
+
+// 8. Admin Delete FAST TV Channel
+router.delete('/fast/channels/:id', (req, res) => {
+  const deleted = fastLinearService.deleteChannel(req.params.id);
+  if (!deleted) {
+    return res.status(404).json({ success: false, message: 'FAST Channel not found' });
+  }
+  res.json({
+    success: true,
+    message: 'FAST Channel decommissioned and deleted from live broadcast lineup'
+  });
+});
+
 export default router;

@@ -78,15 +78,62 @@ export class FastLinearService {
     });
   }
 
-  // --- Admin FAST Channel CRUD ---
-  public addChannel(newChannel: Omit<FastChannel, 'schedule' | 'currentProgram'>): FastChannel {
+  // --- Admin FAST Channel CRUD Operations ---
+
+  public getNextChannelNumber(): number {
+    if (this.channels.length === 0) return 101;
+    const maxNumber = Math.max(...this.channels.map(c => c.channelNumber || 100));
+    return maxNumber + 1;
+  }
+
+  public addChannel(data: Partial<FastChannel>): FastChannel {
+    const rawName = (data.name || 'New FAST Channel').trim();
+    const slug = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const id = data.id || `fast-${slug || Date.now()}`;
+    const channelNumber = typeof data.channelNumber === 'number' && data.channelNumber > 0 
+      ? data.channelNumber 
+      : this.getNextChannelNumber();
+
     const channel: FastChannel = {
-      ...newChannel,
+      id,
+      channelNumber,
+      name: rawName,
+      category: (data.category as any) || 'Movies',
+      logoUrl: data.logoUrl || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&auto=format&fit=crop&q=80',
+      description: data.description || `24/7 continuous linear streaming broadcast for ${rawName}.`,
+      streamUrl: data.streamUrl || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
       schedule: []
     };
+
     this.channels.push(channel);
+    this.channels.sort((a, b) => a.channelNumber - b.channelNumber);
     this.refreshSchedule();
     return channel;
+  }
+
+  public updateChannel(id: string, updates: Partial<FastChannel>): FastChannel | null {
+    const channel = this.channels.find(c => c.id === id);
+    if (!channel) return null;
+
+    if (updates.name !== undefined) channel.name = updates.name.trim();
+    if (updates.channelNumber !== undefined && typeof updates.channelNumber === 'number') {
+      channel.channelNumber = updates.channelNumber;
+    }
+    if (updates.category !== undefined) channel.category = updates.category as any;
+    if (updates.logoUrl !== undefined) channel.logoUrl = updates.logoUrl.trim();
+    if (updates.description !== undefined) channel.description = updates.description.trim();
+    if (updates.streamUrl !== undefined) channel.streamUrl = updates.streamUrl.trim();
+
+    this.channels.sort((a, b) => a.channelNumber - b.channelNumber);
+    this.refreshSchedule();
+    return channel;
+  }
+
+  public deleteChannel(id: string): boolean {
+    const idx = this.channels.findIndex(c => c.id === id);
+    if (idx === -1) return false;
+    this.channels.splice(idx, 1);
+    return true;
   }
 }
 
