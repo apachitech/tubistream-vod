@@ -702,5 +702,25 @@ export const SEED_FAST_CHANNELS: FastChannel[] = [
     description: 'Breathtaking 4K nature documentaries, safari expeditions, and undersea wonders.',
     streamUrl: SAMPLE_HLS_STREAMS.cosmosLaundromat,
     schedule: []
+  },
+  {
+    id: 'fast-france-24-english',
+    channelNumber: 107,
+    name: 'France 24 English HD',
+    category: 'News',
+    logoUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=200&auto=format&fit=crop&q=80',
+    description: 'Live 24/7 breaking international news, world headlines, and cultural affairs from Paris.',
+    streamUrl: 'https://static.france24.com/live/F24_EN_LO_HLS/live_web.m3u8',
+    schedule: []
+  },
+  {
+    id: 'fast-red-bull-tv',
+    channelNumber: 108,
+    name: 'Red Bull TV Live HD',
+    category: 'Sports',
+    logoUrl: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=200&auto=format&fit=crop&q=80',
+    description: '24/7 live extreme sports, global racing championships, and action documentaries.',
+    streamUrl: 'https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8',
+    schedule: []
   }
 ];
