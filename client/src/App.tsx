@@ -9,6 +9,7 @@ import { Footer } from './components/layout/Footer';
 import { DeviceModeBanner } from './components/layout/DeviceModeBanner';
 import { HeroBanner } from './components/home/HeroBanner';
 import { ContentRow } from './components/home/ContentRow';
+import { MediaCard } from './components/home/MediaCard';
 import { Top10Row } from './components/home/Top10Row';
 import { FastLiveGuide } from './components/fast/FastLiveGuide';
 import { SmartTvView } from './components/tv/SmartTvView';
@@ -41,6 +42,7 @@ export const App: React.FC = () => {
   const [selectedTitleModal, setSelectedTitleModal] = useState<Title | null>(null);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [catalogCardForm, setCatalogCardForm] = useState<'portrait' | 'landscape'>('portrait');
 
   const checkPinAndExecute = (action: () => void, rating?: string, titleName?: string) => {
     if (activeProfile?.isKids && (rating === 'R' || rating === 'TV-MA')) {
@@ -215,7 +217,7 @@ export const App: React.FC = () => {
                   onOpenDetails={(t) => setSelectedTitleModal(t)}
                 />
 
-                {/* Continue Watching Row (If user has watch history) */}
+                {/* Continue Watching Row (If user has watch history) - Widescreen Landscape */}
                 {personalizedFeed?.continueWatching && personalizedFeed.continueWatching.length > 0 && (
                   <ContentRow
                     title="Continue Watching"
@@ -224,10 +226,11 @@ export const App: React.FC = () => {
                     onOpenDetails={(t) => setSelectedTitleModal(t)}
                     icon={<Clock size={22} color="var(--accent-pink)" />}
                     progressData={progressMap}
+                    variant="landscape"
                   />
                 )}
 
-                {/* AI Personalized Recommendations */}
+                {/* AI Personalized Recommendations - Classic Portrait Posters */}
                 {personalizedFeed?.topPicksForYou && personalizedFeed.topPicksForYou.length > 0 && (
                   <ContentRow
                     title="Recommended For You"
@@ -235,6 +238,7 @@ export const App: React.FC = () => {
                     titles={personalizedFeed.topPicksForYou}
                     onOpenDetails={(t) => setSelectedTitleModal(t)}
                     icon={<Sparkles size={22} color="var(--accent-pink)" />}
+                    variant="portrait"
                   />
                 )}
 
@@ -244,7 +248,7 @@ export const App: React.FC = () => {
                   onOpenDetails={(t) => setSelectedTitleModal(t)}
                 />
 
-                {/* "Because You Watched [Title]" */}
+                {/* "Because You Watched [Title]" - Landscape Widescreen */}
                 {personalizedFeed?.becauseYouWatched && (
                   <ContentRow
                     title={`Because You Watched "${personalizedFeed.becauseYouWatched.sourceTitle.title}"`}
@@ -252,25 +256,28 @@ export const App: React.FC = () => {
                     titles={personalizedFeed.becauseYouWatched.recommendations}
                     onOpenDetails={(t) => setSelectedTitleModal(t)}
                     icon={<Film size={22} color="var(--accent-cyan)" />}
+                    variant="landscape"
                   />
                 )}
 
-                {/* Trending Content Row */}
+                {/* Trending Content Row - High Impact Large Spotlight Landscape */}
                 <ContentRow
                   title="Trending Blockbusters"
-                  subtitle="Most watched titles across TubiStream today"
+                  subtitle="Most watched titles across TubiStream today in 4K UHD"
                   titles={personalizedFeed?.trendingNow || allTitles.slice(0, 8)}
                   onOpenDetails={(t) => setSelectedTitleModal(t)}
                   icon={<Flame size={22} color="#ff6e00" />}
+                  variant="landscape-large"
                 />
 
-                {/* Genre Spotlight Carousels */}
-                {personalizedFeed?.genreSpotlights?.map((spotlight: any) => (
+                {/* Genre Spotlight Carousels - Varied between Portrait and Landscape */}
+                {personalizedFeed?.genreSpotlights?.map((spotlight: any, idx: number) => (
                   <ContentRow
                     key={spotlight.genre}
                     title={`${spotlight.genre} Vault`}
                     titles={spotlight.titles}
                     onOpenDetails={(t) => setSelectedTitleModal(t)}
+                    variant={idx % 2 === 0 ? 'portrait' : 'landscape'}
                   />
                 ))}
               </>
@@ -279,11 +286,73 @@ export const App: React.FC = () => {
             {/* View: Filtered Categories / Movies / Series / My List */}
             {['movies', 'series', 'mylist'].includes(currentView) || currentView.startsWith('genre-') ? (
               <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '40px 32px' }}>
-                <div style={{ marginBottom: '32px' }}>
-                  <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#fff' }}>{viewHeading}</h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                    Showing {displayedTitles.length} titles available to stream free in high definition.
-                  </p>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'space-between',
+                    marginBottom: '32px',
+                    flexWrap: 'wrap',
+                    gap: '16px'
+                  }}
+                >
+                  <div>
+                    <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#fff' }}>{viewHeading}</h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                      Showing {displayedTitles.length} titles available to stream free in high definition.
+                    </p>
+                  </div>
+
+                  {/* Card Form Selector Toggle */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(255,255,255,0.06)',
+                      borderRadius: '8px',
+                      padding: '4px',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                  >
+                    <button
+                      onClick={() => setCatalogCardForm('portrait')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        background: catalogCardForm === 'portrait' ? 'var(--accent-pink)' : 'transparent',
+                        color: '#fff',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      ▯ Portrait Posters
+                    </button>
+                    <button
+                      onClick={() => setCatalogCardForm('landscape')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        background: catalogCardForm === 'landscape' ? 'var(--accent-pink)' : 'transparent',
+                        color: '#fff',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      ▭ Widescreen Cards
+                    </button>
+                  </div>
                 </div>
 
                 {displayedTitles.length === 0 ? (
@@ -308,38 +377,21 @@ export const App: React.FC = () => {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
+                      gridTemplateColumns:
+                        catalogCardForm === 'landscape'
+                          ? 'repeat(auto-fill, minmax(300px, 1fr))'
+                          : 'repeat(auto-fill, minmax(190px, 1fr))',
                       gap: '24px'
                     }}
                   >
                     {displayedTitles.map((t) => (
-                      <div
+                      <MediaCard
                         key={t.id}
-                        onClick={() => setSelectedTitleModal(t)}
-                        style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                      >
-                        <img
-                          src={t.posterUrl}
-                          alt={t.title}
-                          style={{
-                            width: '100%',
-                            aspectRatio: '2/3',
-                            objectFit: 'cover',
-                            borderRadius: '10px',
-                            boxShadow: 'var(--shadow-card)'
-                          }}
-                        />
-                        <div style={{ marginTop: '8px' }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {t.title}
-                          </div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                            {t.releaseYear} • {t.rating} • {t.genres[0]}
-                          </div>
-                        </div>
-                      </div>
+                        title={t}
+                        onOpenDetails={(t) => setSelectedTitleModal(t)}
+                        variant={catalogCardForm}
+                        fullWidth={true}
+                      />
                     ))}
                   </div>
                 )}

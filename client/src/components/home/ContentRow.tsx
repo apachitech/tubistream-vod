@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Title } from '../../types';
-import { MediaCard } from './MediaCard';
+import { MediaCard, CardVariant } from './MediaCard';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ContentRowProps {
@@ -10,6 +10,7 @@ interface ContentRowProps {
   onOpenDetails: (title: Title) => void;
   icon?: React.ReactNode;
   progressData?: { [titleId: string]: { progress: number; duration: number } };
+  variant?: CardVariant;
 }
 
 export const ContentRow: React.FC<ContentRowProps> = ({
@@ -18,7 +19,8 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   titles,
   onOpenDetails,
   icon,
-  progressData
+  progressData,
+  variant = 'portrait'
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -111,6 +113,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
                 onOpenDetails={onOpenDetails}
                 progressSeconds={p?.progress}
                 durationSeconds={p?.duration}
+                variant={variant}
               />
             );
           })}
