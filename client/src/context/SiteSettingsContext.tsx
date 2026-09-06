@@ -8,6 +8,11 @@ interface SiteSettingsContextType {
   siteTagline: string;
   siteDescription: string;
   footerCopyright: string;
+  primaryAccentColor: string;
+  contentRatingPolicy: 'general' | 'mature_18' | 'family_friendly';
+  announcementBanner: string;
+  isAnnouncementActive: boolean;
+  logoStyle: 'gradient_initial' | 'badge' | 'neon';
   isLoading: boolean;
   updateSettings: (updates: Partial<SiteSettings>) => Promise<{ success: boolean; message: string; settings?: SiteSettings; error?: string }>;
   resetSettings: () => Promise<{ success: boolean; message: string; settings?: SiteSettings; error?: string }>;
@@ -18,7 +23,12 @@ const DEFAULT_SETTINGS: SiteSettings = {
   siteName: 'TubiStream',
   siteTagline: '100% Free VOD & FAST',
   siteDescription: 'Watch thousands of free movies and binge-worthy TV series with zero subscriptions. Powered by adaptive streaming, AI recommendations, and 24/7 Live FAST TV channels.',
-  footerCopyright: '© 2026 TubiStream Entertainment Inc. All rights reserved. Free VOD & FAST Streaming Platform.'
+  footerCopyright: '© 2026 TubiStream Entertainment Inc. All rights reserved. Free VOD & FAST Streaming Platform.',
+  primaryAccentColor: '#ff2a6d',
+  contentRatingPolicy: 'general',
+  announcementBanner: '🚀 Unlimited Free Streaming • Zero Subscriptions Required • Over 5,000+ Movies & Live Channels On Demand',
+  isAnnouncementActive: false,
+  logoStyle: 'gradient_initial'
 };
 
 const SiteSettingsContext = createContext<SiteSettingsContextType | undefined>(undefined);
@@ -44,12 +54,17 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     refreshSettings();
   }, []);
 
-  // Update browser tab title dynamically whenever site name or tagline updates
+  // Update browser tab title and dynamic CSS root accent color whenever settings change
   useEffect(() => {
-    if (typeof document !== 'undefined' && settings.siteName) {
-      document.title = `${settings.siteName} — Watch Free Movies & TV Shows | ${settings.siteTagline}`;
+    if (typeof document !== 'undefined') {
+      if (settings.siteName) {
+        document.title = `${settings.siteName} — Watch Free Movies & TV Shows | ${settings.siteTagline}`;
+      }
+      if (settings.primaryAccentColor) {
+        document.documentElement.style.setProperty('--accent-pink', settings.primaryAccentColor);
+      }
     }
-  }, [settings.siteName, settings.siteTagline]);
+  }, [settings.siteName, settings.siteTagline, settings.primaryAccentColor]);
 
   const updateSettings = async (updates: Partial<SiteSettings>): Promise<{ success: boolean; message: string; settings?: SiteSettings; error?: string }> => {
     try {
@@ -87,6 +102,11 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         siteTagline: settings.siteTagline || DEFAULT_SETTINGS.siteTagline,
         siteDescription: settings.siteDescription || DEFAULT_SETTINGS.siteDescription,
         footerCopyright: settings.footerCopyright || DEFAULT_SETTINGS.footerCopyright,
+        primaryAccentColor: settings.primaryAccentColor || DEFAULT_SETTINGS.primaryAccentColor || '#ff2a6d',
+        contentRatingPolicy: settings.contentRatingPolicy || DEFAULT_SETTINGS.contentRatingPolicy || 'general',
+        announcementBanner: settings.announcementBanner || DEFAULT_SETTINGS.announcementBanner || '',
+        isAnnouncementActive: settings.isAnnouncementActive ?? false,
+        logoStyle: settings.logoStyle || DEFAULT_SETTINGS.logoStyle || 'gradient_initial',
         isLoading,
         updateSettings,
         resetSettings,

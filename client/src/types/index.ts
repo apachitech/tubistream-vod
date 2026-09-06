@@ -321,5 +321,10 @@ export interface SiteSettings {
   siteTagline: string;
   siteDescription: string;
   footerCopyright: string;
+  primaryAccentColor?: string;
+  contentRatingPolicy?: 'general' | 'mature_18' | 'family_friendly';
+  announcementBanner?: string;
+  isAnnouncementActive?: boolean;
+  logoStyle?: 'gradient_initial' | 'badge' | 'neon';
   updatedAt?: string;
 }

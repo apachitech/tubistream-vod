@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     addProfile
   } = useAuth();
   const { deviceMode } = useDeviceMode();
-  const { siteName, siteTagline } = useSiteSettings();
+  const { siteName, siteTagline, contentRatingPolicy, announcementBanner, isAnnouncementActive } = useSiteSettings();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Title[]>([]);
@@ -150,6 +150,29 @@ export const Navbar: React.FC<NavbarProps> = ({
         boxShadow: isScrolled ? '0 10px 30px rgba(0,0,0,0.85)' : '0 4px 20px rgba(0,0,0,0.4)'
       }}
     >
+      {/* Platform Announcement / Maturity Notice Banner */}
+      {isAnnouncementActive && announcementBanner && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(255, 42, 109, 0.92) 0%, rgba(157, 78, 221, 0.95) 100%)',
+            color: '#fff',
+            fontSize: '0.76rem',
+            fontWeight: 800,
+            padding: '5px 16px',
+            textAlign: 'center',
+            letterSpacing: '0.03em',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
+            borderBottom: '1px solid rgba(255,255,255,0.15)'
+          }}
+        >
+          <span>{announcementBanner}</span>
+        </div>
+      )}
+
       <div
         style={{
           maxWidth: '100%',
@@ -240,7 +263,45 @@ export const Navbar: React.FC<NavbarProps> = ({
                   lineHeight: 1
                 }}
               >
-                {siteName}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{siteName}</span>
+                  {contentRatingPolicy === 'mature_18' && (
+                    <span
+                      style={{
+                        fontSize: '0.60rem',
+                        fontWeight: 900,
+                        background: 'rgba(255, 42, 109, 0.25)',
+                        border: '1px solid var(--accent-pink)',
+                        color: 'var(--accent-pink)',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        letterSpacing: '0.05em',
+                        WebkitTextFillColor: 'var(--accent-pink)'
+                      }}
+                      title="18+ Mature Streaming Mode"
+                    >
+                      18+
+                    </span>
+                  )}
+                  {contentRatingPolicy === 'family_friendly' && (
+                    <span
+                      style={{
+                        fontSize: '0.60rem',
+                        fontWeight: 900,
+                        background: 'rgba(0, 240, 118, 0.2)',
+                        border: '1px solid #00f076',
+                        color: '#00f076',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        letterSpacing: '0.05em',
+                        WebkitTextFillColor: '#00f076'
+                      }}
+                      title="Family-Safe Streaming Mode"
+                    >
+                      FAMILY
+                    </span>
+                  )}
+                </div>
               </div>
               <div
                 style={{

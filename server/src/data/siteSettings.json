@@ -1,7 +1,12 @@
 {
-  "siteName": "TubiStream",
-  "siteTagline": "100% Free Streaming, Zero Hassle",
-  "siteDescription": "Stream thousands of free movies and TV shows instantly. 100% legal, no credit card required.",
-  "footerCopyright": "© 2026 TubiStream Entertainment Corp. All rights reserved.",
-  "updatedAt": "2026-09-06T08:05:21.457Z"
+  "siteName": "SensualFlix",
+  "siteTagline": "Late-Night Adult & Mature Cinema",
+  "siteDescription": "Exclusive mature cinema, adult late-night series, sensual dramas, and uncensored streaming. 18+ age verification required.",
+  "footerCopyright": "© 2026 SensualFlix Entertainment Corp. All rights reserved.",
+  "primaryAccentColor": "#e50914",
+  "contentRatingPolicy": "mature_18",
+  "announcementBanner": "🔞 18+ Mature Streaming Active: Must be of legal age to view mature catalog",
+  "isAnnouncementActive": true,
+  "logoStyle": "gradient_initial",
+  "updatedAt": "2026-09-06T09:06:25.536Z"
 }
