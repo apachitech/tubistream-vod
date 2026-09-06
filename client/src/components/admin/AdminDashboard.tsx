@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSettings, PlanTierConfig, PaymentTransaction, SubscriptionPaymentMethodConfig } from '../../types';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -8,13 +8,80 @@ import {
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
   Sliders, Play, Pause, Copy, ExternalLink, ToggleLeft, ToggleRight, Eye, Code, X,
   Crown, Search, Shield, Zap, Tv, CreditCard, Smartphone, CheckCircle2, Receipt,
-  Wallet, Landmark, Coins, Globe, PlusCircle, Settings, Palette, Monitor
+  Wallet, Landmark, Coins, Globe, PlusCircle, Settings, Palette, Monitor, ArrowLeft,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-export const AdminDashboard: React.FC = () => {
+interface AdminDashboardProps {
+  onBackToHome?: () => void;
+  initialTab?: 'overview' | 'catalog' | 'fast' | 'ads' | 'plans' | 'ml' | 'settings';
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, initialTab = 'overview' }) => {
   const { isAdmin } = useAuth();
   const { settings, updateSettings, resetSettings } = useSiteSettings();
-  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'fast' | 'ads' | 'plans' | 'ml' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'fast' | 'ads' | 'plans' | 'ml' | 'settings'>(initialTab);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const TABS_LIST: Array<'overview' | 'catalog' | 'fast' | 'ads' | 'plans' | 'ml' | 'settings'> = [
+    'overview', 'catalog', 'fast', 'ads', 'plans', 'ml', 'settings'
+  ];
+
+  const currentTabIndex = TABS_LIST.indexOf(activeTab);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsRef.current) {
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -260 : 260,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const navigateTab = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      if (currentTabIndex > 0) {
+        setActiveTab(TABS_LIST[currentTabIndex - 1]);
+      }
+      scrollTabs('left');
+    } else {
+      if (currentTabIndex < TABS_LIST.length - 1) {
+        setActiveTab(TABS_LIST[currentTabIndex + 1]);
+      }
+      scrollTabs('right');
+    }
+  };
+
+  // Smooth scroll helper for responsive tables and specific containers
+  const scrollContainer = (id: string, direction: 'left' | 'right') => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollBy({
+        left: direction === 'left' ? -320 : 320,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Floating pan controller to easily glide left/right across overflowing pages or tables
+  const panPageHorizontal = (direction: 'left' | 'right') => {
+    const delta = direction === 'left' ? -350 : 350;
+    // Pan any active or in-view table wrapper
+    const tableWrappers = document.querySelectorAll('.table-responsive-wrapper');
+    tableWrappers.forEach((wrapper) => {
+      const rect = wrapper.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight && rect.bottom > 0;
+      if (inView && wrapper.scrollWidth > wrapper.clientWidth) {
+        wrapper.scrollBy({ left: delta, behavior: 'smooth' });
+      }
+    });
+
+    // Also pan document/window horizontally
+    window.scrollBy({ left: delta, behavior: 'smooth' });
+    if (document.documentElement.scrollWidth > window.innerWidth) {
+      document.documentElement.scrollBy({ left: delta, behavior: 'smooth' });
+    }
+  };
   const [dashboardData, setDashboardData] = useState<any | null>(null);
   const [titles, setTitles] = useState<Title[]>([]);
   const [channels, setChannels] = useState<FastChannel[]>([]);
@@ -571,17 +638,49 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: 'clamp(16px, 3vw, 32px) clamp(14px, 2.5vw, 24px)', minHeight: '85vh' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            {onBackToHome && (
+              <button
+                onClick={onBackToHome}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.09)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  fontSize: '0.80rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 42, 109, 0.25)';
+                  e.currentTarget.style.borderColor = 'var(--accent-pink)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.09)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                title="Return to Streaming Platform"
+              >
+                <ArrowLeft size={14} /> Back to Cinema
+              </button>
+            )}
+
             <span
               style={{
-                background: '#9d4edd',
+                background: 'linear-gradient(135deg, #9d4edd 0%, #7b2cbf 100%)',
                 color: '#fff',
                 padding: '4px 10px',
                 borderRadius: '6px',
                 fontSize: '0.75rem',
-                fontWeight: 800
+                fontWeight: 800,
+                boxShadow: '0 0 12px rgba(157, 78, 221, 0.5)'
               }}
             >
               EXECUTIVE STUDIO
@@ -595,272 +694,271 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
 
-        <button onClick={fetchAllData} className="btn-secondary" style={{ gap: '6px' }}>
-          <RefreshCw size={16} /> Refresh Metrics
-        </button>
-      </div>
-
-      {/* KPI Stats Top Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(150px, 45vw, 220px), 1fr))',
-          gap: '16px',
-          marginBottom: '32px'
-        }}
-      >
-        <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ACTIVE VIEWERS</span>
-            <Users size={18} color="var(--accent-green)" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff' }}>
-            {summary.totalViewersNow.toLocaleString()}
-          </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', marginTop: '4px', fontWeight: 700 }}>
-            ● Live Stream Telemetry Active
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>AD REVENUE TODAY</span>
-            <DollarSign size={18} color="#ffd700" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#ffd700' }}>
-            ${summary.totalAdRevenueToday.toFixed(2)}
-          </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            {summary.totalAdImpressionsToday.toLocaleString()} Impressions @ $26.50 CPM
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>WATCH HOURS</span>
-            <TrendingUp size={18} color="var(--accent-pink)" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff' }}>
-            {summary.totalWatchHoursToday.toLocaleString()} hrs
-          </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--accent-pink)', marginTop: '4px', fontWeight: 700 }}>
-            Fill Rate: {summary.fillRatePercentage}%
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>CDN EGRESS SAVED</span>
-            <HardDrive size={18} color="var(--accent-cyan)" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
-            {summary.cdnBandwidthGbToday} GB
-          </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Avg Bitrate: {summary.averageBitrateMbps} Mbps
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {onBackToHome && (
+            <button
+              onClick={onBackToHome}
+              className="btn-secondary"
+              style={{ gap: '6px', fontSize: '0.84rem' }}
+            >
+              <Tv size={15} color="var(--accent-cyan)" /> Platform View
+            </button>
+          )}
+          <button onClick={fetchAllData} className="btn-secondary" style={{ gap: '6px', fontSize: '0.84rem' }}>
+            <RefreshCw size={15} /> Refresh Metrics
+          </button>
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div
-        className="no-scrollbar scroll-touch"
-        style={{
-          display: 'flex',
-          gap: '12px',
-          borderBottom: '1px solid var(--border-subtle)',
-          paddingBottom: '16px',
-          marginBottom: '32px',
-          overflowX: 'auto',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        <button
-          onClick={() => setActiveTab('overview')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'overview' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0
-          }}
-        >
-          <Activity size={16} /> QoS & Revenue Analytics
-        </button>
+      {/* Tabs Navigation — Sticky and Prominently Visible at Top of Admin CMS with Left & Right Arrow Controls */}
+      <div className="admin-cms-nav-bar scroll-touch">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '100%' }}>
+          {/* Previous Tab / Scroll Tabs Left Arrow */}
+          <button
+            type="button"
+            onClick={() => navigateTab('prev')}
+            className="tab-scroll-btn"
+            title={currentTabIndex > 0 ? `Previous: ${TABS_LIST[currentTabIndex - 1]}` : 'Scroll left'}
+            aria-label="Previous tab or scroll left"
+            style={{
+              opacity: currentTabIndex === 0 ? 0.6 : 1
+            }}
+          >
+            <ChevronLeft size={16} />
+          </button>
 
-        <button
-          onClick={() => setActiveTab('catalog')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'catalog' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0
-          }}
-        >
-          <Film size={16} /> Catalog Ingestion & CMS ({titles.length})
-        </button>
+          <div
+            ref={tabsRef}
+            className="no-scrollbar scroll-touch"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+              padding: '2px 4px 6px',
+              flex: 1
+            }}
+          >
+            {onBackToHome && (
+              <button
+                onClick={onBackToHome}
+                className="admin-tab-btn"
+                style={{
+                  background: 'rgba(255, 42, 109, 0.12)',
+                  borderColor: 'rgba(255, 42, 109, 0.35)',
+                  color: 'var(--accent-pink)'
+                }}
+                title="Return to user streaming cinema"
+              >
+                <ArrowLeft size={15} /> Cinema Home
+              </button>
+            )}
 
-        <button
-          onClick={() => setActiveTab('fast')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'fast' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0
-          }}
-        >
-          <Radio size={16} /> FAST Live Channels ({channels.length})
-        </button>
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`admin-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+              title="QoS & Revenue Telemetry Analytics"
+            >
+              <Activity size={16} color={activeTab === 'overview' ? '#fff' : '#c77dff'} />
+              <span>QoS & Revenue Analytics</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('ads')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'ads' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0
-          }}
-        >
-          <DollarSign size={16} /> Ad Engine & Inventory ({ads.length})
-        </button>
+            <button
+              onClick={() => setActiveTab('catalog')}
+              className={`admin-tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
+              title="Manage VOD Titles, Ingestion, and Metadata"
+            >
+              <Film size={16} color={activeTab === 'catalog' ? '#fff' : '#05d9e8'} />
+              <span>Catalog Ingestion & CMS</span>
+              <span className="admin-tab-badge">{titles.length}</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('plans')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'plans' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0
-          }}
-        >
-          <Crown size={16} color="#ffd700" /> Plan & Subscriber Controls ({usersList.length})
-        </button>
+            <button
+              onClick={() => setActiveTab('fast')}
+              className={`admin-tab-btn ${activeTab === 'fast' ? 'active' : ''}`}
+              title="Manage FAST Linear Channels and EPG Schedules"
+            >
+              <Radio size={16} color={activeTab === 'fast' ? '#fff' : '#00f076'} />
+              <span>FAST Live Channels</span>
+              <span className="admin-tab-badge">{channels.length}</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('ml')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'ml' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0
-          }}
-        >
-          <Sparkles size={16} /> ML Vector Engine Insights
-        </button>
+            <button
+              onClick={() => setActiveTab('ads')}
+              className={`admin-tab-btn ${activeTab === 'ads' ? 'active' : ''}`}
+              title="Manage IAB VAST/VMAP Video Ad Inventory"
+            >
+              <DollarSign size={16} color={activeTab === 'ads' ? '#fff' : '#ffd700'} />
+              <span>Ad Engine & Inventory</span>
+              <span className="admin-tab-badge">{ads.length}</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('settings')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '8px',
-            fontWeight: 700,
-            fontSize: '0.92rem',
-            background: activeTab === 'settings' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexShrink: 0,
-            border: activeTab === 'settings' ? '1px solid rgba(255, 42, 109, 0.4)' : '1px solid transparent',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <Settings size={16} color={activeTab === 'settings' ? '#fff' : 'var(--accent-pink)'} /> Site Branding & Identity
-        </button>
+            <button
+              onClick={() => setActiveTab('plans')}
+              className={`admin-tab-btn ${activeTab === 'plans' ? 'active' : ''}`}
+              title="Configure Subscription Plans, Pricing, and User Tiers"
+            >
+              <Crown size={16} color={activeTab === 'plans' ? '#fff' : '#ffb703'} />
+              <span>Plan & Subscriber Controls</span>
+              <span className="admin-tab-badge">{usersList.length}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('ml')}
+              className={`admin-tab-btn ${activeTab === 'ml' ? 'active' : ''}`}
+              title="View ML Vector Recommendation Insights and Semantic Search"
+            >
+              <Sparkles size={16} color={activeTab === 'ml' ? '#fff' : 'var(--accent-pink)'} />
+              <span>ML Vector Engine</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`admin-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
+              title="Configure Site Name, Tagline, Branding, and Identity"
+            >
+              <Settings size={16} color={activeTab === 'settings' ? '#fff' : 'var(--accent-pink)'} />
+              <span>Site Branding & Identity</span>
+            </button>
+          </div>
+
+          {/* Next Tab / Scroll Tabs Right Arrow */}
+          <button
+            type="button"
+            onClick={() => navigateTab('next')}
+            className="tab-scroll-btn"
+            title={currentTabIndex < TABS_LIST.length - 1 ? `Next: ${TABS_LIST[currentTabIndex + 1]}` : 'Scroll right'}
+            aria-label="Next tab or scroll right"
+            style={{
+              opacity: currentTabIndex === TABS_LIST.length - 1 ? 0.6 : 1
+            }}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Tab 1: Overview Analytics */}
       {activeTab === 'overview' && (
-        <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-          {/* Device Distribution */}
-          <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '20px' }}>
-              Multi-Device Audience Breakdown
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {summary.deviceBreakdown.map((dev) => (
-                <div key={dev.device}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', fontWeight: 600, marginBottom: '6px' }}>
-                    <span>{dev.device}</span>
-                    <span style={{ color: 'var(--accent-pink)', fontWeight: 800 }}>{dev.percentage}%</span>
-                  </div>
-                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>
-                    <div
-                      style={{
-                        width: `${dev.percentage}%`,
-                        height: '100%',
-                        borderRadius: '4px',
-                        background: 'var(--accent-gradient)'
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          {/* KPI Stats Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(150px, 45vw, 220px), 1fr))',
+              gap: '16px'
+            }}
+          >
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ACTIVE VIEWERS</span>
+                <Users size={18} color="var(--accent-green)" />
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff' }}>
+                {summary.totalViewersNow.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', marginTop: '4px', fontWeight: 700 }}>
+                ● Live Stream Telemetry Active
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>AD REVENUE TODAY</span>
+                <DollarSign size={18} color="#ffd700" />
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#ffd700' }}>
+                ${summary.totalAdRevenueToday.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                {summary.totalAdImpressionsToday.toLocaleString()} Impressions @ $26.50 CPM
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>WATCH HOURS</span>
+                <TrendingUp size={18} color="var(--accent-pink)" />
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff' }}>
+                {summary.totalWatchHoursToday.toLocaleString()} hrs
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--accent-pink)', marginTop: '4px', fontWeight: 700 }}>
+                Fill Rate: {summary.fillRatePercentage}%
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>CDN EGRESS SAVED</span>
+                <HardDrive size={18} color="var(--accent-cyan)" />
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                {summary.cdnBandwidthGbToday} GB
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Avg Bitrate: {summary.averageBitrateMbps} Mbps
+              </div>
             </div>
           </div>
 
-          {/* Quality of Service QoS Health */}
-          <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '20px' }}>
-              QoS Stream Telemetry
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.9rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Average Buffer Ratio:</span>
-                <span style={{ fontWeight: 800, color: 'var(--accent-green)' }}>
-                  {summary.qosMetrics.averageBufferRatio}% (Optimal)
-                </span>
+          <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+            {/* Device Distribution */}
+            <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '20px' }}>
+                Multi-Device Audience Breakdown
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {summary.deviceBreakdown.map((dev) => (
+                  <div key={dev.device}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', fontWeight: 600, marginBottom: '6px' }}>
+                      <span>{dev.device}</span>
+                      <span style={{ color: 'var(--accent-pink)', fontWeight: 800 }}>{dev.percentage}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px' }}>
+                      <div
+                        style={{
+                          width: `${dev.percentage}%`,
+                          height: '100%',
+                          borderRadius: '4px',
+                          background: 'var(--accent-gradient)'
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Stream Error Rate:</span>
-                <span style={{ fontWeight: 800, color: 'var(--accent-green)' }}>
-                  {summary.qosMetrics.errorRatePercentage}%
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Avg Player Startup Time:</span>
-                <span style={{ fontWeight: 800, color: 'var(--accent-cyan)' }}>
-                  {summary.qosMetrics.avgStartupTimeMs} ms
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>DRM Verification Latency:</span>
-                <span style={{ fontWeight: 800, color: '#fff' }}>14 ms</span>
+            </div>
+
+            {/* Quality of Service QoS Health */}
+            <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '20px' }}>
+                QoS Stream Telemetry
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Average Buffer Ratio:</span>
+                  <span style={{ fontWeight: 800, color: 'var(--accent-green)' }}>
+                    {summary.qosMetrics.averageBufferRatio}% (Optimal)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Stream Error Rate:</span>
+                  <span style={{ fontWeight: 800, color: 'var(--accent-green)' }}>
+                    {summary.qosMetrics.errorRatePercentage}%
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Avg Player Startup Time:</span>
+                  <span style={{ fontWeight: 800, color: 'var(--accent-cyan)' }}>
+                    {summary.qosMetrics.avgStartupTimeMs} ms
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>DRM Verification Latency:</span>
+                  <span style={{ fontWeight: 800, color: '#fff' }}>14 ms</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1069,7 +1167,37 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Catalog Titles Table */}
           <div className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+            <div className="table-scroll-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+                  VOD Catalog Titles ({titles.length})
+                </h3>
+                <span className="table-scroll-hint">
+                  👈 Swipe horizontally or use arrows to view all columns 👉
+                </span>
+              </div>
+              <div className="table-scroll-nav-btns">
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('catalog-titles-table-wrapper', 'left')}
+                  className="table-nudge-btn"
+                  title="Scroll table left"
+                >
+                  <ChevronLeft size={14} /> Left
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('catalog-titles-table-wrapper', 'right')}
+                  className="table-nudge-btn"
+                  title="Scroll table right to view actions"
+                >
+                  Right <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive-wrapper" id="catalog-titles-table-wrapper">
+              <table style={{ width: '100%', minWidth: '920px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
               <thead>
                 <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '16px' }}>POSTER</th>
@@ -1144,6 +1272,7 @@ export const AdminDashboard: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -1564,7 +1693,37 @@ export const AdminDashboard: React.FC = () => {
 
           {/* FAST Channels Broadcast Table */}
           <div className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+            <div className="table-scroll-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+                  FAST Linear Channels ({channels.length})
+                </h3>
+                <span className="table-scroll-hint">
+                  👈 Swipe horizontally or use arrows to view all columns & actions 👉
+                </span>
+              </div>
+              <div className="table-scroll-nav-btns">
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('fast-channels-table-wrapper', 'left')}
+                  className="table-nudge-btn"
+                  title="Scroll table left"
+                >
+                  <ChevronLeft size={14} /> Left
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('fast-channels-table-wrapper', 'right')}
+                  className="table-nudge-btn"
+                  title="Scroll table right to view actions"
+                >
+                  Right <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive-wrapper" id="fast-channels-table-wrapper">
+              <table style={{ width: '100%', minWidth: '880px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
               <thead>
                 <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '16px' }}>CHANNEL</th>
@@ -1771,6 +1930,7 @@ export const AdminDashboard: React.FC = () => {
                   ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Live Stream Tester Modal */}
@@ -2261,16 +2421,40 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Ad Inventory Table */}
           <div className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>
-                Active Ad Inventory & Campaign Status ({ads.length})
-              </h3>
-              <span style={{ fontSize: '0.8rem', color: 'var(--accent-green)', fontWeight: 700 }}>
-                ● Real-Time IAB VAST 4.2 Endpoints Active
-              </span>
+            <div className="table-scroll-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+                  Active Ad Inventory & Campaign Status ({ads.length})
+                </h3>
+                <span className="table-scroll-hint">
+                  👈 Swipe horizontally or use arrows to view all columns 👉
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--accent-green)', fontWeight: 700 }}>
+                  ● Real-Time IAB VAST 4.2 Active
+                </span>
+              </div>
+              <div className="table-scroll-nav-btns">
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('ad-inventory-table-wrapper', 'left')}
+                  className="table-nudge-btn"
+                  title="Scroll table left"
+                >
+                  <ChevronLeft size={14} /> Left
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('ad-inventory-table-wrapper', 'right')}
+                  className="table-nudge-btn"
+                  title="Scroll table right to view actions"
+                >
+                  Right <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+            <div className="table-responsive-wrapper" id="ad-inventory-table-wrapper">
+              <table style={{ width: '100%', minWidth: '880px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
               <thead>
                 <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '16px' }}>ADVERTISER & TITLE</th>
@@ -2409,6 +2593,7 @@ export const AdminDashboard: React.FC = () => {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -2979,8 +3164,32 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             {/* User List Table */}
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+            <div className="table-scroll-header" style={{ borderRadius: '12px 12px 0 0', marginTop: '10px' }}>
+              <span className="table-scroll-hint">
+                👈 Swipe horizontally or use arrows to view subscriber details & controls 👉
+              </span>
+              <div className="table-scroll-nav-btns">
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('subscribers-table-wrapper', 'left')}
+                  className="table-nudge-btn"
+                  title="Scroll table left"
+                >
+                  <ChevronLeft size={14} /> Left
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('subscribers-table-wrapper', 'right')}
+                  className="table-nudge-btn"
+                  title="Scroll table right to view plan controls"
+                >
+                  Right <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive-wrapper" id="subscribers-table-wrapper" style={{ borderRadius: '0 0 12px 12px' }}>
+              <table style={{ width: '100%', minWidth: '850px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '14px 16px' }}>VIEWER</th>
@@ -3209,8 +3418,32 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Transactions Table */}
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
+            <div className="table-scroll-header" style={{ borderRadius: '12px 12px 0 0', marginTop: '10px' }}>
+              <span className="table-scroll-hint">
+                👈 Swipe horizontally or use arrows to view all transaction records & status 👉
+              </span>
+              <div className="table-scroll-nav-btns">
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('transactions-table-wrapper', 'left')}
+                  className="table-nudge-btn"
+                  title="Scroll table left"
+                >
+                  <ChevronLeft size={14} /> Left
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollContainer('transactions-table-wrapper', 'right')}
+                  className="table-nudge-btn"
+                  title="Scroll table right to view status"
+                >
+                  Right <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive-wrapper" id="transactions-table-wrapper" style={{ borderRadius: '0 0 12px 12px' }}>
+              <table style={{ width: '100%', minWidth: '850px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.86rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(9, 10, 15, 0.95)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '14px 16px' }}>TX ID</th>

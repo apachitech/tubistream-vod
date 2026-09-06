@@ -784,48 +784,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          {/* Activate TV Button - Eliminated on mobile navbar, accessible in mobile dropdown menu & desktop library */}
-          {!isMobileScreen && (
-            <button
-              onClick={() => setCurrentView('activate-tv')}
-              className="hide-on-mobile"
-              style={{
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                padding: '0 12px',
-                height: '36px',
-                borderRadius: '8px',
-                background: currentView === 'activate-tv' ? 'rgba(5, 217, 232, 0.22)' : 'rgba(255, 255, 255, 0.05)',
-                border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#fff',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                cursor: 'pointer',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: currentView === 'activate-tv' ? '0 0 14px rgba(5, 217, 232, 0.35)' : 'none'
-              }}
-              onMouseEnter={(e) => {
-                if (currentView !== 'activate-tv') {
-                  e.currentTarget.style.background = 'rgba(5, 217, 232, 0.14)';
-                  e.currentTarget.style.borderColor = 'rgba(5, 217, 232, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (currentView !== 'activate-tv') {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-                }
-              }}
-              title="Link & Activate TV App"
-            >
-              <Tv size={14} color="var(--accent-cyan)" />
-              <span>{windowWidth < 1250 ? 'TV' : 'Activate TV'}</span>
-            </button>
-          )}
-
           {/* VIP Premium Upgrade Button */}
           {user?.tier === 'vip_premium' ? (
             <span
@@ -864,26 +822,33 @@ export const Navbar: React.FC<NavbarProps> = ({
           {isAdmin && (
             <button
               onClick={() => setCurrentView('admin')}
-              className="hide-on-compact-mobile"
               style={{
-                padding: '0 10px',
+                padding: '0 11px',
                 height: '36px',
-                borderRadius: '7px',
-                background: currentView === 'admin' ? '#9d4edd' : 'rgba(157, 78, 221, 0.18)',
-                border: '1px solid rgba(157, 78, 221, 0.45)',
+                borderRadius: '8px',
+                background: currentView === 'admin'
+                  ? 'linear-gradient(135deg, #9d4edd 0%, #7b2cbf 100%)'
+                  : 'rgba(157, 78, 221, 0.18)',
+                border: currentView === 'admin'
+                  ? '1px solid #c77dff'
+                  : '1px solid rgba(157, 78, 221, 0.45)',
                 color: '#fff',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
+                gap: '6px',
+                fontSize: '0.80rem',
+                fontWeight: 700,
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: currentView === 'admin'
+                  ? '0 0 16px rgba(157, 78, 221, 0.6)'
+                  : 'none',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
               title="Admin CMS & Ad Engine Studio"
             >
-              <LayoutDashboard size={13} />
+              <LayoutDashboard size={14} color="#e0aaff" />
               <span>{windowWidth < 1250 ? 'Admin' : 'Admin CMS'}</span>
             </button>
           )}
@@ -1574,20 +1539,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 style={{
                   width: '100%',
-                  padding: '10px',
-                  borderRadius: '8px',
-                  background: 'rgba(157, 78, 221, 0.2)',
-                  border: '1px solid rgba(157, 78, 221, 0.5)',
+                  padding: '11px',
+                  borderRadius: '10px',
+                  background: currentView === 'admin'
+                    ? 'linear-gradient(135deg, #9d4edd 0%, #7b2cbf 100%)'
+                    : 'rgba(157, 78, 221, 0.22)',
+                  border: currentView === 'admin'
+                    ? '1px solid #c77dff'
+                    : '1px solid rgba(157, 78, 221, 0.55)',
                   color: '#fff',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  boxShadow: currentView === 'admin'
+                    ? '0 0 18px rgba(157, 78, 221, 0.65)'
+                    : 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <LayoutDashboard size={15} color="var(--accent-purple)" />
+                <LayoutDashboard size={16} color={currentView === 'admin' ? '#fff' : '#c77dff'} />
                 Admin CMS & Ad Engine Studio
               </button>
             </div>

@@ -24,6 +24,7 @@ import { SubscriptionModal } from './components/modal/SubscriptionModal';
 import { AuthModal } from './components/modal/AuthModal';
 import { VideoPlayer } from './components/player/VideoPlayer';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { FloatingHorizontalNav } from './components/common/FloatingHorizontalNav';
 import { Film, Radio, Sparkles, Clock, Flame, Heart, Play, ShieldAlert } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -145,7 +146,7 @@ export const App: React.FC = () => {
             {/* View: Admin CMS Studio (Protected - Admin Only) */}
             {currentView === 'admin' && (
               isAdmin ? (
-                <AdminDashboard />
+                <AdminDashboard onBackToHome={() => setCurrentView('home')} />
               ) : (
                 <div style={{ maxWidth: '640px', margin: '80px auto', padding: '40px 30px', textAlign: 'center' }} className="glass-panel">
                   <div
@@ -443,6 +444,9 @@ export const App: React.FC = () => {
 
       {/* Global Authentication & Register Modal */}
       <AuthModal />
+
+      {/* Floating Horizontal Navigation Controller hovering over the page for effortless left/right navigation */}
+      <FloatingHorizontalNav />
     </div>
   );
 };
