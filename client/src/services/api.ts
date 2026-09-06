@@ -1,4 +1,4 @@
-import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative, PlatformPlanSettings, PlanTierConfig, SubscriptionPaymentRequest, PaymentTransaction, SubscriptionPaymentMethodConfig } from '../types';
+import { Title, FastChannel, User, UserProfile, AdBreak, DevicePairingCode, AnalyticsSummary, AdCreative, PlatformPlanSettings, PlanTierConfig, SubscriptionPaymentRequest, PaymentTransaction, SubscriptionPaymentMethodConfig, SiteSettings } from '../types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
 
@@ -561,6 +561,41 @@ export const api = {
   async deletePaymentMethod(id: string): Promise<{ success: boolean; message: string }> {
     const res = await fetch(`${API_BASE}/payment/admin/methods/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return res.json();
+  },
+
+  // Platform Branding & Site Settings
+  async getSiteSettings(): Promise<{ success: boolean; settings: SiteSettings }> {
+    try {
+      const res = await fetch(`${API_BASE}/settings/public`);
+      return res.json();
+    } catch (err) {
+      return {
+        success: false,
+        settings: {
+          siteName: 'TubiStream',
+          siteTagline: '100% Free VOD & FAST',
+          siteDescription: 'Watch thousands of free movies and binge-worthy TV series with zero subscriptions. Powered by adaptive streaming, AI recommendations, and 24/7 Live FAST TV channels.',
+          footerCopyright: '© 2026 TubiStream Entertainment Inc. All rights reserved. Free VOD & FAST Streaming Platform.'
+        }
+      };
+    }
+  },
+
+  async updateSiteSettings(settings: Partial<SiteSettings>): Promise<{ success: boolean; message: string; settings: SiteSettings }> {
+    const res = await fetch(`${API_BASE}/admin/settings`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    return res.json();
+  },
+
+  async resetSiteSettings(): Promise<{ success: boolean; message: string; settings: SiteSettings }> {
+    const res = await fetch(`${API_BASE}/admin/settings/reset`, {
+      method: 'POST',
       headers: getAuthHeaders()
     });
     return res.json();

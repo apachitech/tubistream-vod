@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Tv, QrCode, Smartphone, CheckCircle, AlertCircle, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 export const TvActivationScreen: React.FC<{ onActivationSuccess?: () => void }> = ({ onActivationSuccess }) => {
   const { user } = useAuth();
+  const { settings } = useSiteSettings();
+  const siteName = settings?.siteName || 'TubiStream';
   const [activationCode, setActivationCode] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,10 +102,10 @@ export const TvActivationScreen: React.FC<{ onActivationSuccess?: () => void }> 
             marginBottom: '16px'
           }}
         >
-          <Tv size={16} /> TUBI DEVICE LINKING PORTAL
+          <Tv size={16} /> {siteName.toUpperCase()} DEVICE LINKING PORTAL
         </div>
         <h1 style={{ fontSize: '2.8rem', fontWeight: 900, color: '#fff', marginBottom: '12px' }}>
-          Activate Your Smart TV Device
+          Activate Your Smart TV on {siteName}
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: '640px', margin: '0 auto' }}>
           Connect your Apple TV, Samsung Smart TV, Roku, or Amazon Fire TV in seconds without typing passwords on your remote.
@@ -255,7 +258,7 @@ export const TvActivationScreen: React.FC<{ onActivationSuccess?: () => void }> 
             ) : (
               <div>
                 <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                  Go to <code style={{ color: 'var(--accent-pink)' }}>tubitv.com/activate</code> on your phone/laptop and enter:
+                  Go to <code style={{ color: 'var(--accent-pink)' }}>{siteName.toLowerCase().replace(/\s+/g, '')}.com/activate</code> on your phone/laptop and enter:
                 </p>
 
                 {/* Big 6-Digit Alphanumeric Code Display */}

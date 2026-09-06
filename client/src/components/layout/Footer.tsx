@@ -1,7 +1,10 @@
 import React from 'react';
 import { Film, ShieldCheck, Tv, Smartphone, Cast, Globe } from 'lucide-react';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 export const Footer: React.FC = () => {
+  const { siteName, siteDescription, footerCopyright } = useSiteSettings();
+
   return (
     <footer
       style={{
@@ -37,10 +40,10 @@ export const Footer: React.FC = () => {
               >
                 <Film size={18} color="#fff" />
               </div>
-              <span style={{ fontSize: '1.3rem', fontWeight: 900, letterSpacing: '-0.02em' }}>tubistream</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 900, letterSpacing: '-0.02em' }}>{siteName}</span>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
-              The world’s largest 100% free streaming platform. Stream thousands of hit movies, binge-worthy series, and 24/7 Live FAST TV channels with zero credit card required.
+              {siteDescription}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-green)', fontSize: '0.8rem', fontWeight: 600 }}>
               <ShieldCheck size={16} /> Widevine & ClearKey DRM Certified
@@ -99,7 +102,7 @@ export const Footer: React.FC = () => {
             color: 'var(--text-muted)'
           }}
         >
-          <div>© 2026 TubiStream Entertainment Inc. All rights reserved. Free VOD & FAST Streaming Platform.</div>
+          <div>{footerCopyright}</div>
           <div style={{ display: 'flex', gap: '20px' }}>
             <a href="#" style={{ color: 'var(--text-muted)' }}>Privacy Policy</a>
             <a href="#" style={{ color: 'var(--text-muted)' }}>Terms of Service</a>

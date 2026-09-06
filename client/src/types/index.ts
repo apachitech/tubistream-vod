@@ -315,3 +315,11 @@ export interface PaymentTransaction {
   receiptUrl?: string;
   createdAt: string;
 }
+
+export interface SiteSettings {
+  siteName: string;
+  siteTagline: string;
+  siteDescription: string;
+  footerCopyright: string;
+  updatedAt?: string;
+}

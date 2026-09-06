@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDeviceMode } from '../../context/DeviceModeContext';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import {
   Search, Tv, Crown, Film, Layers, LayoutDashboard, X, Check, Mic, Users, Download, Menu, ChevronDown, Heart, LogIn, LogOut, Plus, Flame, Sparkles, Radio
 } from 'lucide-react';
@@ -32,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     addProfile
   } = useAuth();
   const { deviceMode } = useDeviceMode();
+  const { siteName, siteTagline } = useSiteSettings();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Title[]>([]);
@@ -238,7 +240,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   lineHeight: 1
                 }}
               >
-                tubi<span style={{ fontWeight: 400, color: '#fff' }}>stream</span>
+                {siteName}
               </div>
               <div
                 style={{
@@ -251,7 +253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   marginTop: '2px'
                 }}
               >
-                100% Free VOD & FAST
+                {siteTagline}
               </div>
             </div>
           </div>

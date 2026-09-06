@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { X, Mail, Lock, User as UserIcon, Eye, EyeOff, Sparkles, CheckCircle2, Crown, ShieldAlert, Film, ArrowRight } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, closeAuthModal, authModalTab, openAuthModal, login, register } = useAuth();
+  const { siteName } = useSiteSettings();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -452,12 +454,12 @@ export const AuthModal: React.FC = () => {
               <span>Connecting...</span>
             ) : authModalTab === 'signin' ? (
               <>
-                <span>Sign In to TubiStream</span>
+                <span>Sign In to {siteName}</span>
                 <ArrowRight size={16} />
               </>
             ) : (
               <>
-                <span>Create Free Account</span>
+                <span>Create Free {siteName} Account</span>
                 <Sparkles size={16} />
               </>
             )}

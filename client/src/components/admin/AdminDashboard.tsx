@@ -2,17 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSettings, PlanTierConfig, PaymentTransaction, SubscriptionPaymentMethodConfig } from '../../types';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import {
   LayoutDashboard, Film, Radio, DollarSign, Activity, Sparkles, Plus, Trash2, Edit3,
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
   Sliders, Play, Pause, Copy, ExternalLink, ToggleLeft, ToggleRight, Eye, Code, X,
   Crown, Search, Shield, Zap, Tv, CreditCard, Smartphone, CheckCircle2, Receipt,
-  Wallet, Landmark, Coins, Globe, PlusCircle
+  Wallet, Landmark, Coins, Globe, PlusCircle, Settings, Palette, Monitor
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'fast' | 'ads' | 'plans' | 'ml'>('overview');
+  const { settings, updateSettings, resetSettings } = useSiteSettings();
+  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'fast' | 'ads' | 'plans' | 'ml' | 'settings'>('overview');
   const [dashboardData, setDashboardData] = useState<any | null>(null);
   const [titles, setTitles] = useState<Title[]>([]);
   const [channels, setChannels] = useState<FastChannel[]>([]);
@@ -22,6 +24,27 @@ export const AdminDashboard: React.FC = () => {
   const [userFilter, setUserFilter] = useState<'all' | 'free' | 'vip_premium'>('all');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [planToast, setPlanToast] = useState<string | null>(null);
+
+  // Site Settings & Platform Branding State
+  const [settingsForm, setSettingsForm] = useState({
+    siteName: '',
+    siteTagline: '',
+    siteDescription: '',
+    footerCopyright: ''
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsToast, setSettingsToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settings) {
+      setSettingsForm({
+        siteName: settings.siteName || '',
+        siteTagline: settings.siteTagline || '',
+        siteDescription: settings.siteDescription || '',
+        footerCopyright: settings.footerCopyright || ''
+      });
+    }
+  }, [settings]);
 
   // Subscription Transactions State
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
@@ -247,6 +270,56 @@ export const AdminDashboard: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to update title access tier', err);
+    }
+  };
+
+  const handleSaveSiteSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!settingsForm.siteName.trim()) {
+      setSettingsToast('Platform name cannot be empty');
+      setTimeout(() => setSettingsToast(null), 3000);
+      return;
+    }
+    setIsSavingSettings(true);
+    try {
+      const res = await updateSettings({
+        siteName: settingsForm.siteName.trim(),
+        siteTagline: settingsForm.siteTagline.trim(),
+        siteDescription: settingsForm.siteDescription.trim(),
+        footerCopyright: settingsForm.footerCopyright.trim()
+      });
+      if (res.success && res.settings) {
+        setSettingsToast(`Platform name updated to "${res.settings.siteName}"! Applied live across all screens.`);
+      } else {
+        setSettingsToast(res.error || 'Failed to update site settings');
+      }
+    } catch (err: any) {
+      setSettingsToast(err?.message || 'Error updating settings');
+    } finally {
+      setIsSavingSettings(false);
+      setTimeout(() => setSettingsToast(null), 4000);
+    }
+  };
+
+  const handleResetSiteSettings = async () => {
+    if (!window.confirm('Reset platform name and branding settings to default?')) return;
+    setIsSavingSettings(true);
+    try {
+      const res = await resetSettings();
+      if (res.success && res.settings) {
+        setSettingsForm({
+          siteName: res.settings.siteName,
+          siteTagline: res.settings.siteTagline,
+          siteDescription: res.settings.siteDescription,
+          footerCopyright: res.settings.footerCopyright
+        });
+        setSettingsToast(`Settings reset to default ("${res.settings.siteName}")!`);
+      }
+    } catch (err: any) {
+      setSettingsToast('Failed to reset settings');
+    } finally {
+      setIsSavingSettings(false);
+      setTimeout(() => setSettingsToast(null), 3500);
     }
   };
 
@@ -699,6 +772,25 @@ export const AdminDashboard: React.FC = () => {
           }}
         >
           <Sparkles size={16} /> ML Vector Engine Insights
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            background: activeTab === 'settings' ? '#9d4edd' : 'rgba(255,255,255,0.04)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            border: activeTab === 'settings' ? '1px solid rgba(255, 42, 109, 0.4)' : '1px solid transparent',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <Settings size={16} color={activeTab === 'settings' ? '#fff' : 'var(--accent-pink)'} /> Site Branding & Identity
         </button>
       </div>
 
@@ -3238,6 +3330,508 @@ export const AdminDashboard: React.FC = () => {
                 <li><strong>Completion &gt;90%:</strong> +3.0 weight</li>
                 <li><strong>Watch Duration %:</strong> Linear scalar (1.0x to 3.0x)</li>
               </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 7: Site Settings & Global Branding */}
+      {activeTab === 'settings' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          {/* Toast Notification */}
+          {settingsToast && (
+            <div
+              className="animate-fade-in"
+              style={{
+                padding: '14px 20px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(157, 78, 221, 0.25) 0%, rgba(255, 42, 109, 0.25) 100%)',
+                border: '1px solid rgba(255, 42, 109, 0.4)',
+                color: '#fff',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+              }}
+            >
+              <CheckCircle2 size={18} color="#00f076" />
+              <span>{settingsToast}</span>
+            </div>
+          )}
+
+          {/* Header Banner */}
+          <div
+            className="glass-panel"
+            style={{
+              padding: '28px 32px',
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, rgba(255, 42, 109, 0.08) 0%, rgba(157, 78, 221, 0.12) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '20px'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #ff2a6d 0%, #9d4edd 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 14px rgba(255, 42, 109, 0.4)'
+                  }}
+                >
+                  <Settings size={20} color="#fff" />
+                </div>
+                <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#fff' }}>
+                  Site Settings & Platform Branding Studio
+                </h2>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    background: 'rgba(0, 240, 118, 0.15)',
+                    color: '#00f076',
+                    border: '1px solid rgba(0, 240, 118, 0.3)',
+                    letterSpacing: '0.05em'
+                  }}
+                >
+                  LIVE MULTI-SCREEN SYNC
+                </span>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', maxWidth: '780px', lineHeight: 1.5 }}>
+                Manage the platform's official name, tagline, description, and legal footer notice. Any change saved here is written to persistent backend storage and propagates in real-time to the Navbar logo, browser document title, Smart TV 10-foot UI, Auth modals, and Footer copyright.
+              </p>
+            </div>
+
+            {/* Quick Presets */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Quick Brand Presets
+              </span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { name: 'TubiStream', tagline: '100% Free Streaming, Zero Hassle', desc: 'Stream thousands of free movies and TV shows instantly. 100% legal, no credit card required.' },
+                  { name: 'CinemaPulse', tagline: 'Your Premier Free Cinema Universe', desc: 'Watch blockbuster movies, trending series, and 24/7 FAST channels with zero subscription fees.' },
+                  { name: 'NightOwl VOD', tagline: 'Free Midnight Thrills & Cult Shows', desc: 'Uncensored cult classics, late-night action, indie cinema, and binge-worthy television.' },
+                  { name: 'StreamFlix Max', tagline: 'Next-Gen Free Streaming On Demand', desc: 'High-definition 4K streaming catalog featuring cinema hits and live channels.' }
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setSettingsForm({
+                        siteName: preset.name,
+                        siteTagline: preset.tagline,
+                        siteDescription: preset.desc,
+                        footerCopyright: `© 2026 ${preset.name} Entertainment Corp. All rights reserved.`
+                      });
+                      setSettingsToast(`Preset "${preset.name}" loaded into form! Click Save to apply.`);
+                      setTimeout(() => setSettingsToast(null), 3000);
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#fff',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 42, 109, 0.2)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 42, 109, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                    }}
+                  >
+                    + {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Main 2-Column Grid: Form & Live Preview */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px', alignItems: 'start' }}>
+            {/* Left Column: Form Controls */}
+            <form
+              onSubmit={handleSaveSiteSettings}
+              className="glass-panel"
+              style={{
+                padding: '28px',
+                borderRadius: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '22px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Palette size={18} color="var(--accent-pink)" />
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+                    Brand Configuration Fields
+                  </h3>
+                </div>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Auto-synced via JSON State
+                </span>
+              </div>
+
+              {/* Field 1: Site Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#fff', marginBottom: '6px' }}>
+                  Site / Platform Name <span style={{ color: 'var(--accent-pink)' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.siteName}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, siteName: e.target.value })}
+                  placeholder="e.g. TubiStream"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#fff',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                    boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.3)'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-pink)'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.15)'}
+                />
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Primary brand name. Displayed in the Navbar logo, browser tab &lt;title&gt;, Smart TV UI, emails, and CMS access screens.
+                </span>
+              </div>
+
+              {/* Field 2: Site Tagline */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#fff', marginBottom: '6px' }}>
+                  Platform Tagline / Slogan
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.siteTagline}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, siteTagline: e.target.value })}
+                  placeholder="e.g. 100% Free Streaming, Zero Hassle"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#fff',
+                    fontSize: '0.95rem',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-pink)'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.15)'}
+                />
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Shown beneath the logo in the Navbar, inside document &lt;title&gt;, and on promotional cards.
+                </span>
+              </div>
+
+              {/* Field 3: Site Description */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#fff', marginBottom: '6px' }}>
+                  Site Description & SEO Meta
+                </label>
+                <textarea
+                  rows={3}
+                  value={settingsForm.siteDescription}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, siteDescription: e.target.value })}
+                  placeholder="Stream thousands of free movies and TV shows instantly. 100% legal, no credit card required."
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#fff',
+                    fontSize: '0.9rem',
+                    lineHeight: 1.4,
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-pink)'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.15)'}
+                />
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Used in the footer "About" synopsis, search engine description tags, and social share cards.
+                </span>
+              </div>
+
+              {/* Field 4: Footer Copyright */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#fff', marginBottom: '6px' }}>
+                  Footer Legal & Copyright Text
+                </label>
+                <input
+                  type="text"
+                  value={settingsForm.footerCopyright}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, footerCopyright: e.target.value })}
+                  placeholder="e.g. © 2026 TubiStream Entertainment Corp. All rights reserved."
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#fff',
+                    fontSize: '0.92rem',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-pink)'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.15)'}
+                />
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Displayed in the footer across every page and device view.
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '10px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="btn-primary"
+                  style={{
+                    flex: 1,
+                    padding: '14px 24px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #ff2a6d 0%, #9d4edd 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: isSavingSettings ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 6px 20px rgba(255, 42, 109, 0.35)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Check size={18} />
+                  {isSavingSettings ? 'Saving & Applying...' : 'Save & Propagate Everywhere'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSavingSettings}
+                  onClick={handleResetSiteSettings}
+                  style={{
+                    padding: '14px 20px',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    cursor: isSavingSettings ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  title="Reset to default TubiStream branding"
+                >
+                  <RefreshCw size={16} />
+                  Reset
+                </button>
+              </div>
+            </form>
+
+            {/* Right Column: Live Instant Previews */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div
+                className="glass-panel"
+                style={{
+                  padding: '24px',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '18px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+                  <Monitor size={18} color="#00f076" />
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>
+                    Live Multi-Surface Previews
+                  </h3>
+                </div>
+
+                {/* Preview 1: Browser Tab Title */}
+                <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+                    1. Browser Window & Tab Title
+                  </span>
+                  <div
+                    style={{
+                      background: '#1a1b26',
+                      borderRadius: '8px 8px 0 0',
+                      padding: '8px 12px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      borderTop: '2px solid var(--accent-pink)'
+                    }}
+                  >
+                    <Globe size={14} color="#9d4edd" />
+                    <span
+                      style={{
+                        fontSize: '0.8rem',
+                        color: '#fff',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {settingsForm.siteName || 'TubiStream'} — Watch Free Movies & TV Shows | {settingsForm.siteTagline || '100% Free Streaming'}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '4px' }}>✕</span>
+                  </div>
+                  <div style={{ height: '4px', background: '#24283b', borderRadius: '0 0 4px 4px' }} />
+                </div>
+
+                {/* Preview 2: Navbar Brand Logo */}
+                <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+                    2. Desktop Navigation Bar Logo
+                  </span>
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      border: '1px solid rgba(255, 255, 255, 0.06)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #ff2a6d 0%, #9d4edd 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 900,
+                          fontSize: '1rem',
+                          color: '#fff'
+                        }}
+                      >
+                        {(settingsForm.siteName || 'T')[0]}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span
+                          style={{
+                            fontSize: '1.25rem',
+                            fontWeight: 900,
+                            letterSpacing: '-0.02em',
+                            background: 'linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                          }}
+                        >
+                          {settingsForm.siteName || 'TubiStream'}
+                        </span>
+                        {settingsForm.siteTagline && (
+                          <span style={{ fontSize: '0.68rem', color: 'var(--accent-pink)', fontWeight: 700 }}>
+                            {settingsForm.siteTagline}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      <span style={{ color: '#fff' }}>MOVIES</span>
+                      <span>SERIES</span>
+                      <span style={{ color: '#00f076' }}>LIVE FAST</span>
+                      <span style={{ color: '#ffd700' }}>👑 VIP</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview 3: Smart TV 10-Foot UI Header */}
+                <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+                    3. Smart TV 10-Foot Spatial Interface
+                  </span>
+                  <div
+                    style={{
+                      background: '#06070a',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      border: '1px solid rgba(255, 42, 109, 0.2)'
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: 'linear-gradient(135deg, #ff2a6d 0%, #ff6e00 100%)',
+                        fontWeight: 900,
+                        fontSize: '0.82rem',
+                        color: '#fff',
+                        letterSpacing: '0.05em'
+                      }}
+                    >
+                      {(settingsForm.siteName || 'TubiStream').toUpperCase()} 10-FOOT UI
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      🎮 Lean-back Spatial Navigation • Remote D-Pad Ready
+                    </span>
+                  </div>
+                </div>
+
+                {/* Preview 4: Footer Copyright Card */}
+                <div style={{ background: 'rgba(0, 0, 0, 0.5)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+                    4. Footer & Legal Copyright
+                  </span>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '8px' }}>
+                      {settingsForm.siteDescription || 'Stream thousands of free movies and TV shows instantly. 100% legal, no credit card required.'}
+                    </p>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
+                      {settingsForm.footerCopyright || `© 2026 ${settingsForm.siteName || 'TubiStream'} Entertainment Corp. All rights reserved.`}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
         </div>

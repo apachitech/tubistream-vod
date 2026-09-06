@@ -4,6 +4,7 @@ import { api } from './services/api';
 import { useAuth } from './context/AuthContext';
 import { usePlayer } from './context/PlayerContext';
 import { useDeviceMode } from './context/DeviceModeContext';
+import { useSiteSettings } from './context/SiteSettingsContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { DeviceModeBanner } from './components/layout/DeviceModeBanner';
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
   const { user, activeProfile, isAdmin, openAuthModal } = useAuth();
   const { isPlaying } = usePlayer();
   const { deviceMode } = useDeviceMode();
+  const { siteName } = useSiteSettings();
 
   const [currentView, setCurrentView] = useState<string>('home');
   const [featuredTitles, setFeaturedTitles] = useState<Title[]>([]);
@@ -166,7 +168,7 @@ export const App: React.FC = () => {
                     Access Restricted
                   </h2>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '28px' }}>
-                    The TubiStream Studio CMS & Ad Decision Engine is reserved strictly for authorized administrators. Please sign in with an administrative account to continue.
+                    The {siteName} Studio CMS & Ad Decision Engine is reserved strictly for authorized administrators. Please sign in with an administrative account to continue.
                   </p>
                   <div style={{ display: 'flex', gap: '14px', justifyContent: 'center' }}>
                     <button
@@ -263,7 +265,7 @@ export const App: React.FC = () => {
                 {/* Trending Content Row - High Impact Large Spotlight Landscape */}
                 <ContentRow
                   title="Trending Blockbusters"
-                  subtitle="Most watched titles across TubiStream today in 4K UHD"
+                  subtitle={`Most watched titles across ${siteName} today in 4K UHD`}
                   titles={personalizedFeed?.trendingNow || allTitles.slice(0, 8)}
                   onOpenDetails={(t) => setSelectedTitleModal(t)}
                   icon={<Flame size={22} color="#ff6e00" />}

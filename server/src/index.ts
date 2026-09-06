@@ -11,6 +11,7 @@ import adminRoutes from './routes/adminRoutes';
 import partyRoutes from './routes/partyRoutes';
 import aiSearchRoutes from './routes/aiSearchRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 import path from 'path';
 import fs from 'fs';
 
@@ -37,6 +38,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/party', partyRoutes);
 app.use('/api/ai-search', aiSearchRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/admin/settings', settingsRoutes);
 
 // System Health Check
 app.get('/api/health', (req, res) => {

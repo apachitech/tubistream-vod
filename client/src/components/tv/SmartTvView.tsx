@@ -3,6 +3,7 @@ import { Title, FastChannel } from '../../types';
 import { api } from '../../services/api';
 import { usePlayer } from '../../context/PlayerContext';
 import { Play, Info, Tv, Sparkles, Radio, Film, Compass, ChevronRight } from 'lucide-react';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 export const SmartTvView: React.FC<{ onOpenDetails: (t: Title) => void }> = ({ onOpenDetails }) => {
   const [titles, setTitles] = useState<Title[]>([]);
@@ -10,6 +11,8 @@ export const SmartTvView: React.FC<{ onOpenDetails: (t: Title) => void }> = ({ o
   const [activeSection, setActiveSection] = useState<'featured' | 'channels' | 'movies' | 'action'>('featured');
   const [focusedIndex, setFocusedIndex] = useState(0);
   const { playTitle, playFastChannel } = usePlayer();
+  const { settings } = useSiteSettings();
+  const siteName = settings?.siteName || 'TubiStream';
 
   useEffect(() => {
     Promise.all([api.getFeatured(), api.getFastChannels(), api.getTitles()]).then(([feat, fast, all]) => {
@@ -68,10 +71,11 @@ export const SmartTvView: React.FC<{ onOpenDetails: (t: Title) => void }> = ({ o
               borderRadius: '8px',
               background: 'linear-gradient(135deg, #ff2a6d 0%, #ff6e00 100%)',
               fontWeight: 900,
-              fontSize: '1.2rem'
+              fontSize: '1.2rem',
+              letterSpacing: '0.05em'
             }}
           >
-            TUBI TV 10-FOOT UI
+            {siteName.toUpperCase()} 10-FOOT UI
           </div>
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
             🎮 Lean-back Spatial Navigation • Use Remote D-Pad
