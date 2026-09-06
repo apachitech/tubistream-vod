@@ -48,14 +48,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       ? title.posterUrl
       : title.backdropUrl || title.posterUrl;
 
-  // Sizing by variant
+  // Responsive fluid sizing by variant
   const cardWidth = fullWidth
     ? '100%'
     : variant === 'landscape-large'
-    ? '440px'
+    ? 'clamp(280px, 84vw, 440px)'
     : variant === 'landscape'
-    ? '310px'
-    : '200px';
+    ? 'clamp(210px, 66vw, 310px)'
+    : 'clamp(140px, 42vw, 200px)';
 
   const flexSetting = fullWidth ? '1 1 auto' : '0 0 auto';
 

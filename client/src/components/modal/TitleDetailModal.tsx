@@ -48,7 +48,7 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
+        padding: 'clamp(8px, 2.5vw, 24px)',
         overflowY: 'auto'
       }}
       onClick={onClose}
@@ -59,8 +59,8 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
         style={{
           width: '100%',
           maxWidth: '960px',
-          maxHeight: '90vh',
-          borderRadius: '24px',
+          maxHeight: '92vh',
+          borderRadius: '20px',
           overflowY: 'auto',
           position: 'relative',
           boxShadow: '0 25px 60px rgba(0,0,0,0.95)',
@@ -72,11 +72,11 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
           onClick={onClose}
           style={{
             position: 'absolute',
-            top: '20px',
-            right: '20px',
+            top: '16px',
+            right: '16px',
             zIndex: 50,
-            width: '38px',
-            height: '38px',
+            width: '36px',
+            height: '36px',
             borderRadius: '50%',
             background: 'rgba(0,0,0,0.7)',
             display: 'flex',
@@ -86,14 +86,14 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
             border: '1px solid rgba(255,255,255,0.2)'
           }}
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
         {/* Hero Backdrop Preview */}
         <div
           style={{
             position: 'relative',
-            height: '380px',
+            height: 'clamp(240px, 38vh, 380px)',
             backgroundImage: `url(${title.backdropUrl})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center 30%'
@@ -110,13 +110,14 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
           <div
             style={{
               position: 'absolute',
-              bottom: '24px',
-              left: '36px',
-              right: '36px',
+              bottom: 'clamp(14px, 2.5vw, 24px)',
+              left: 'clamp(16px, 3.5vw, 36px)',
+              right: 'clamp(16px, 3.5vw, 36px)',
               display: 'flex',
               alignItems: 'flex-end',
               justifyContent: 'space-between',
-              gap: '20px'
+              gap: '14px',
+              flexWrap: 'wrap'
             }}
           >
             <div>
@@ -146,13 +147,13 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
                 <span style={{ color: 'var(--text-secondary)' }}>{title.releaseYear}</span>
                 <span className="badge-hd">4K UHD</span>
               </div>
-              <h1 style={{ fontSize: '2.4rem', fontWeight: 900, lineHeight: 1.1, color: '#fff' }}>
+              <h1 style={{ fontSize: 'clamp(1.5rem, 4.5vw, 2.4rem)', fontWeight: 900, lineHeight: 1.1, color: '#fff' }}>
                 {title.title}
               </h1>
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               {isVipOnly && !hasAccess ? (
                 <button
                   onClick={() => {
@@ -212,7 +213,7 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
         </div>
 
         {/* Modal Body Content */}
-        <div style={{ padding: '24px 36px 40px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div style={{ padding: 'clamp(18px, 3.5vw, 36px) clamp(16px, 3.5vw, 36px) 36px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
           {/* VIP Locked Banner for Free Plan Members */}
           {isVipOnly && !hasAccess && (
             <div
@@ -224,7 +225,8 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '16px'
+                gap: '16px',
+                flexWrap: 'wrap'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -277,7 +279,7 @@ export const TitleDetailModal: React.FC<TitleDetailModalProps> = ({ title, onClo
           )}
 
           {/* Synopsis & Metadata Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
+          <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px' }}>
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '8px' }}>Synopsis</h3>
               <p style={{ color: '#cbd5e1', fontSize: '0.96rem', lineHeight: 1.6, marginBottom: '16px' }}>

@@ -569,9 +569,9 @@ export const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px', minHeight: '85vh' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: 'clamp(16px, 3vw, 32px) clamp(14px, 2.5vw, 24px)', minHeight: '85vh' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             <span
@@ -586,7 +586,7 @@ export const AdminDashboard: React.FC = () => {
             >
               EXECUTIVE STUDIO
             </span>
-            <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#fff' }}>
+            <h1 style={{ fontSize: 'clamp(1.35rem, 4vw, 2.2rem)', fontWeight: 900, color: '#fff' }}>
               Content Management & Analytics CMS
             </h1>
           </div>
@@ -604,8 +604,8 @@ export const AdminDashboard: React.FC = () => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '20px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(150px, 45vw, 220px), 1fr))',
+          gap: '16px',
           marginBottom: '32px'
         }}
       >
@@ -664,12 +664,15 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Tabs Navigation */}
       <div
+        className="no-scrollbar scroll-touch"
         style={{
           display: 'flex',
           gap: '12px',
           borderBottom: '1px solid var(--border-subtle)',
           paddingBottom: '16px',
-          marginBottom: '32px'
+          marginBottom: '32px',
+          overflowX: 'auto',
+          whiteSpace: 'nowrap'
         }}
       >
         <button
@@ -683,7 +686,8 @@ export const AdminDashboard: React.FC = () => {
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            flexShrink: 0
           }}
         >
           <Activity size={16} /> QoS & Revenue Analytics
@@ -700,7 +704,8 @@ export const AdminDashboard: React.FC = () => {
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            flexShrink: 0
           }}
         >
           <Film size={16} /> Catalog Ingestion & CMS ({titles.length})
@@ -717,7 +722,8 @@ export const AdminDashboard: React.FC = () => {
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            flexShrink: 0
           }}
         >
           <Radio size={16} /> FAST Live Channels ({channels.length})
@@ -734,7 +740,8 @@ export const AdminDashboard: React.FC = () => {
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            flexShrink: 0
           }}
         >
           <DollarSign size={16} /> Ad Engine & Inventory ({ads.length})
@@ -751,7 +758,8 @@ export const AdminDashboard: React.FC = () => {
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            flexShrink: 0
           }}
         >
           <Crown size={16} color="#ffd700" /> Plan & Subscriber Controls ({usersList.length})
@@ -768,7 +776,8 @@ export const AdminDashboard: React.FC = () => {
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            flexShrink: 0
           }}
         >
           <Sparkles size={16} /> ML Vector Engine Insights
@@ -786,6 +795,7 @@ export const AdminDashboard: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            flexShrink: 0,
             border: activeTab === 'settings' ? '1px solid rgba(255, 42, 109, 0.4)' : '1px solid transparent',
             transition: 'all 0.2s ease'
           }}
@@ -796,7 +806,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Tab 1: Overview Analytics */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
+        <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
           {/* Device Distribution */}
           <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px' }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '20px' }}>
@@ -872,7 +882,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleCreateTitle} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <form onSubmit={handleCreateTitle} className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>TITLE</label>
                 <input
@@ -1908,7 +1918,7 @@ export const AdminDashboard: React.FC = () => {
                     />
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px', color: 'var(--text-secondary)' }}>
                         Channel Number
@@ -2511,7 +2521,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '24px' }}>
                 {/* Free Plan Card */}
                 {(() => {
                   const freePlan = planSettings.plans.find(p => p.id === 'free') || planSettings.plans[0];
@@ -3310,7 +3320,7 @@ export const AdminDashboard: React.FC = () => {
             The recommendation pipeline utilizes tokenized TF-IDF feature vocabulary across genres, cast, directors, maturity ratings, and release decades, computing normalized cosine similarity dot products in high-dimensional vector space combined with user implicit feedback watch affinity.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '0.88rem' }}>
+          <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '0.88rem' }}>
             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
               <h4 style={{ fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Feature Importance Weights</h4>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-secondary)' }}>
@@ -3468,7 +3478,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Main 2-Column Grid: Form & Live Preview */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px', alignItems: 'start' }}>
+          <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px', alignItems: 'start' }}>
             {/* Left Column: Form Controls */}
             <form
               onSubmit={handleSaveSiteSettings}
@@ -3972,7 +3982,7 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.80rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '5px' }}>
                     Category

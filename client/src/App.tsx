@@ -287,20 +287,20 @@ export const App: React.FC = () => {
 
             {/* View: Filtered Categories / Movies / Series / My List */}
             {['movies', 'series', 'mylist'].includes(currentView) || currentView.startsWith('genre-') ? (
-              <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '40px 32px' }}>
+              <div style={{ maxWidth: '1440px', margin: '0 auto', padding: 'clamp(20px, 4vw, 40px) clamp(14px, 3vw, 32px)' }}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'flex-end',
                     justifyContent: 'space-between',
-                    marginBottom: '32px',
+                    marginBottom: '28px',
                     flexWrap: 'wrap',
                     gap: '16px'
                   }}
                 >
                   <div>
-                    <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#fff' }}>{viewHeading}</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                    <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.4rem)', fontWeight: 900, color: '#fff' }}>{viewHeading}</h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>
                       Showing {displayedTitles.length} titles available to stream free in high definition.
                     </p>
                   </div>
@@ -381,9 +381,9 @@ export const App: React.FC = () => {
                       display: 'grid',
                       gridTemplateColumns:
                         catalogCardForm === 'landscape'
-                          ? 'repeat(auto-fill, minmax(300px, 1fr))'
-                          : 'repeat(auto-fill, minmax(190px, 1fr))',
-                      gap: '24px'
+                          ? 'repeat(auto-fill, minmax(clamp(240px, 45vw, 320px), 1fr))'
+                          : 'repeat(auto-fill, minmax(clamp(136px, 42vw, 190px), 1fr))',
+                      gap: 'clamp(12px, 2vw, 24px)'
                     }}
                   >
                     {displayedTitles.map((t) => (

@@ -40,7 +40,7 @@ export const DeviceModeBanner: React.FC = () => {
           {deviceMode === 'tv' && <Tv size={14} color="#ff2a6d" />}
           MODE: {deviceMode.toUpperCase()}
         </span>
-        <span>
+        <span className="hide-on-compact-mobile">
           {deviceMode === 'tv'
             ? '🎮 10-Foot Smart TV UI (Spatial D-Pad: Use Arrow Keys + Enter / Backspace)'
             : deviceMode === 'mobile'

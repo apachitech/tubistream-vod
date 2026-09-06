@@ -349,4 +349,99 @@ button {
   border-color: rgba(255, 42, 109, 0.6);
 }
 
+/* ==========================================================================
+   Mobile Responsiveness Design System & Media Queries
+   ========================================================================== */
+
+/* Touch Scroll Enhancements */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Responsive Visibility Helpers */
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .hide-on-compact-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .hide-on-tablet {
+    display: none !important;
+  }
+}
+
+/* Mobile & Tablet Specific Layout Tweaks */
+@media (max-width: 768px) {
+  /* Fluid headings on mobile */
+  h1 {
+    font-size: clamp(1.6rem, 5.5vw, 2.4rem) !important;
+  }
+  h2 {
+    font-size: clamp(1.25rem, 4.5vw, 1.8rem) !important;
+  }
+  h3 {
+    font-size: clamp(1.05rem, 3.8vw, 1.4rem) !important;
+  }
+
+  /* Safe tap target sizes */
+  button, a {
+    min-height: 38px;
+  }
+
+  /* Reduce panel & container padding */
+  .glass-panel, .glass-heavy {
+    border-radius: 14px;
+  }
+
+  /* Responsive Grid Fallbacks */
+  .responsive-two-col {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* Content Row Carousel Padding on Mobile */
+  .content-row-track {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    gap: 12px !important;
+  }
+
+  .content-row-header {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Mobile Modals */
+  .responsive-modal-container {
+    padding: 10px 8px !important;
+    align-items: flex-end !important; /* Bottom sheet on mobile */
+  }
+
+  .responsive-modal-body {
+    max-height: 88vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding: 20px 16px 28px !important;
+  }
+
+  .responsive-modal-body-standard {
+    border-radius: 18px !important;
+    padding: 20px 16px 28px !important;
+  }
+}
+
+
 

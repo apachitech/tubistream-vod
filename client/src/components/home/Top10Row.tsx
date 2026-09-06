@@ -28,6 +28,7 @@ export const Top10Row: React.FC<Top10RowProps> = ({ titles, onOpenDetails }) => 
   return (
     <section style={{ margin: '40px 0', position: 'relative' }}>
       <div
+        className="content-row-header"
         style={{
           maxWidth: '1440px',
           margin: '0 auto',
@@ -46,6 +47,7 @@ export const Top10Row: React.FC<Top10RowProps> = ({ titles, onOpenDetails }) => 
       <div style={{ position: 'relative', width: '100%' }}>
         <button
           onClick={() => scroll('left')}
+          className="hide-on-mobile"
           style={{
             position: 'absolute',
             left: '8px',
@@ -69,14 +71,15 @@ export const Top10Row: React.FC<Top10RowProps> = ({ titles, onOpenDetails }) => 
 
         <div
           ref={rowRef}
-          className="no-scrollbar"
+          className="no-scrollbar content-row-track scroll-touch"
           style={{
             display: 'flex',
-            gap: '24px',
+            gap: '20px',
             overflowX: 'auto',
             padding: '10px 32px 30px',
             maxWidth: '1440px',
-            margin: '0 auto'
+            margin: '0 auto',
+            scrollSnapType: 'x mandatory'
           }}
         >
           {titles.slice(0, 10).map((t, index) => (
@@ -98,12 +101,12 @@ export const Top10Row: React.FC<Top10RowProps> = ({ titles, onOpenDetails }) => 
               {/* Massive Styled Rank Number */}
               <div
                 style={{
-                  fontSize: '9rem',
+                  fontSize: 'clamp(5rem, 14vw, 9rem)',
                   fontFamily: 'var(--font-heading)',
                   fontWeight: 900,
                   lineHeight: 0.8,
                   letterSpacing: '-0.08em',
-                  marginRight: '-28px',
+                  marginRight: 'clamp(-20px, -4vw, -28px)',
                   zIndex: 2,
                   WebkitTextStroke: '3px rgba(255, 42, 109, 0.8)',
                   color: '#090a0f',
@@ -118,7 +121,7 @@ export const Top10Row: React.FC<Top10RowProps> = ({ titles, onOpenDetails }) => 
               <div
                 style={{
                   position: 'relative',
-                  width: '180px',
+                  width: 'clamp(120px, 34vw, 180px)',
                   aspectRatio: '2/3',
                   borderRadius: 'var(--radius-md)',
                   overflow: 'hidden',
@@ -140,6 +143,7 @@ export const Top10Row: React.FC<Top10RowProps> = ({ titles, onOpenDetails }) => 
 
         <button
           onClick={() => scroll('right')}
+          className="hide-on-mobile"
           style={{
             position: 'absolute',
             right: '8px',

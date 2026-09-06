@@ -155,12 +155,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           maxWidth: '100%',
           width: '100%',
           margin: '0 auto',
-          padding: '0 20px',
+          padding: '0 clamp(10px, 2.5vw, 20px)',
           height: '62px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '20px',
+          gap: 'clamp(8px, 1.5vw, 16px)',
           boxSizing: 'border-box'
         }}
       >
@@ -231,7 +231,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div
                 style={{
                   fontFamily: 'var(--font-heading)',
-                  fontSize: '1.3rem',
+                  fontSize: 'clamp(1.05rem, 3.5vw, 1.3rem)',
                   fontWeight: 900,
                   letterSpacing: '-0.03em',
                   background: 'linear-gradient(90deg, #ffffff 0%, #ff2a6d 70%, #ff6e00 100%)',
@@ -620,206 +620,211 @@ export const Navbar: React.FC<NavbarProps> = ({
             flexShrink: 0
           }}
         >
-          {/* Smart Search Button / Expanding Box */}
-          <div ref={searchRef} style={{ position: 'relative' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                background: 'rgba(255,255,255,0.07)',
-                borderRadius: 'var(--radius-full)',
-                padding: isSearchOpen ? '5px 12px' : (windowWidth >= 1350 ? '5px 12px' : '6px 9px'),
-                border: isSearchOpen ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.14)',
-                width: isSearchOpen
-                  ? (windowWidth < 768 ? '180px' : '220px')
-                  : (windowWidth >= 1350 ? '135px' : '36px'),
-                height: '36px',
-                boxSizing: 'border-box',
-                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                cursor: !isSearchOpen && windowWidth < 1350 ? 'pointer' : 'default',
-                boxShadow: isSearchOpen ? '0 0 14px rgba(255, 42, 109, 0.25)' : 'none'
-              }}
-              onClick={() => {
-                if (!isSearchOpen && windowWidth < 1350) {
-                  setIsSearchOpen(true);
-                  setTimeout(() => searchInputRef.current?.focus(), 50);
-                }
-              }}
-              title="Search movies, TV shows, and genres"
-            >
-              <Search
-                size={15}
-                color={isSearchOpen ? 'var(--accent-pink)' : '#e2e8f0'}
+          {/* Smart Search Button / Expanding Box - Eliminated on mobile navbar, accessible in mobile dropdown */}
+          {!isMobileScreen && (
+            <div ref={searchRef} className="hide-on-mobile" style={{ position: 'relative' }}>
+              <div
                 style={{
-                  marginRight: (isSearchOpen || windowWidth >= 1350) ? '8px' : 0,
-                  flexShrink: 0
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(255,255,255,0.07)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: isSearchOpen ? '5px 12px' : (windowWidth >= 1350 ? '5px 12px' : '6px 9px'),
+                  border: isSearchOpen ? '1px solid var(--accent-pink)' : '1px solid rgba(255,255,255,0.14)',
+                  width: isSearchOpen
+                    ? (windowWidth < 768 ? '180px' : '220px')
+                    : (windowWidth >= 1350 ? '135px' : '36px'),
+                  height: '36px',
+                  boxSizing: 'border-box',
+                  transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                  cursor: !isSearchOpen && windowWidth < 1350 ? 'pointer' : 'default',
+                  boxShadow: isSearchOpen ? '0 0 14px rgba(255, 42, 109, 0.25)' : 'none'
                 }}
-              />
-
-              {(isSearchOpen || windowWidth >= 1350) && (
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search movies, AI..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
+                onClick={() => {
+                  if (!isSearchOpen && windowWidth < 1350) {
                     setIsSearchOpen(true);
-                  }}
-                  onFocus={() => setIsSearchOpen(true)}
+                    setTimeout(() => searchInputRef.current?.focus(), 50);
+                  }
+                }}
+                title="Search movies, TV shows, and genres"
+              >
+                <Search
+                  size={15}
+                  color={isSearchOpen ? 'var(--accent-pink)' : '#e2e8f0'}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    outline: 'none',
-                    color: '#fff',
-                    fontSize: '0.82rem',
-                    width: '100%',
-                    minWidth: 0
+                    marginRight: (isSearchOpen || windowWidth >= 1350) ? '8px' : 0,
+                    flexShrink: 0
                   }}
                 />
-              )}
 
-              {/* Voice Search Mic */}
-              {(isSearchOpen || windowWidth >= 1350) && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                      const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-                      const recognition = new SpeechRec();
-                      recognition.onresult = (event: any) => {
-                        const transcript = event.results[0][0].transcript;
-                        setSearchQuery(transcript);
-                        setIsSearchOpen(true);
-                      };
-                      recognition.start();
-                    } else {
-                      setSearchQuery('action movies with robots');
+                {(isSearchOpen || windowWidth >= 1350) && (
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search movies, AI..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
                       setIsSearchOpen(true);
-                    }
-                  }}
-                  style={{ color: 'var(--accent-pink)', padding: '1px 3px', flexShrink: 0 }}
-                  title="Voice Search"
-                  aria-label="Voice Search"
-                >
-                  <Mic size={14} />
-                </button>
-              )}
-
-              {searchQuery && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSearchQuery('');
-                  }}
-                  style={{ color: '#cbd5e1', flexShrink: 0 }}
-                  aria-label="Clear search"
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-
-            {/* Live Search Autocomplete Drawer */}
-            {isSearchOpen && searchResults.length > 0 && (
-              <div
-                className="glass-heavy animate-fade-in"
-                style={{
-                  position: 'absolute',
-                  top: '44px',
-                  right: 0,
-                  width: windowWidth < 480 ? '280px' : '340px',
-                  padding: '10px',
-                  borderRadius: '12px',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.95)',
-                  border: '1px solid rgba(255, 42, 109, 0.3)',
-                  zIndex: 1005,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px'
-                }}
-              >
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 4px' }}>
-                  Matching Titles ({searchResults.length})
-                </div>
-                {searchResults.map((title) => (
-                  <div
-                    key={title.id}
-                    onClick={() => {
-                      setIsSearchOpen(false);
-                      setSearchQuery('');
-                      onSelectTitle(title);
                     }}
+                    onFocus={() => setIsSearchOpen(true)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '6px 8px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      background: 'rgba(255,255,255,0.03)',
-                      transition: 'all 0.2s'
+                      background: 'none',
+                      border: 'none',
+                      outline: 'none',
+                      color: '#fff',
+                      fontSize: '0.82rem',
+                      width: '100%',
+                      minWidth: 0
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 42, 109, 0.15)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                  />
+                )}
+
+                {/* Voice Search Mic */}
+                {(isSearchOpen || windowWidth >= 1350) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                        const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                        const recognition = new SpeechRec();
+                        recognition.onresult = (event: any) => {
+                          const transcript = event.results[0][0].transcript;
+                          setSearchQuery(transcript);
+                          setIsSearchOpen(true);
+                        };
+                        recognition.start();
+                      } else {
+                        setSearchQuery('action movies with robots');
+                        setIsSearchOpen(true);
+                      }
+                    }}
+                    style={{ color: 'var(--accent-pink)', padding: '1px 3px', flexShrink: 0 }}
+                    title="Voice Search"
+                    aria-label="Voice Search"
                   >
-                    <img
-                      src={title.posterUrl}
-                      alt={title.title}
-                      style={{ width: '36px', height: '50px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {title.title}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '2px' }}>
-                        {title.releaseYear} • {title.rating} • {title.genres.slice(0, 2).join(', ')}
+                    <Mic size={14} />
+                  </button>
+                )}
+
+                {searchQuery && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSearchQuery('');
+                    }}
+                    style={{ color: '#cbd5e1', flexShrink: 0 }}
+                    aria-label="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Live Search Autocomplete Drawer */}
+              {isSearchOpen && searchResults.length > 0 && (
+                <div
+                  className="glass-heavy animate-fade-in"
+                  style={{
+                    position: 'absolute',
+                    top: '44px',
+                    right: 0,
+                    width: windowWidth < 480 ? '280px' : '340px',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.95)',
+                    border: '1px solid rgba(255, 42, 109, 0.3)',
+                    zIndex: 1005,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}
+                >
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 4px' }}>
+                    Matching Titles ({searchResults.length})
+                  </div>
+                  {searchResults.map((title) => (
+                    <div
+                      key={title.id}
+                      onClick={() => {
+                        setIsSearchOpen(false);
+                        setSearchQuery('');
+                        onSelectTitle(title);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.03)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 42, 109, 0.15)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                    >
+                      <img
+                        src={title.posterUrl}
+                        alt={title.title}
+                        style={{ width: '36px', height: '50px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {title.title}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '2px' }}>
+                          {title.releaseYear} • {title.rating} • {title.genres.slice(0, 2).join(', ')}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Activate TV Button */}
-          <button
-            onClick={() => setCurrentView('activate-tv')}
-            style={{
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              padding: '0 12px',
-              height: '36px',
-              borderRadius: '8px',
-              background: currentView === 'activate-tv' ? 'rgba(5, 217, 232, 0.22)' : 'rgba(255, 255, 255, 0.05)',
-              border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#fff',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              cursor: 'pointer',
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              boxShadow: currentView === 'activate-tv' ? '0 0 14px rgba(5, 217, 232, 0.35)' : 'none'
-            }}
-            onMouseEnter={(e) => {
-              if (currentView !== 'activate-tv') {
-                e.currentTarget.style.background = 'rgba(5, 217, 232, 0.14)';
-                e.currentTarget.style.borderColor = 'rgba(5, 217, 232, 0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentView !== 'activate-tv') {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-              }
-            }}
-            title="Link & Activate TV App"
-          >
-            <Tv size={14} color="var(--accent-cyan)" />
-            <span>{windowWidth < 1250 ? 'TV' : 'Activate TV'}</span>
-          </button>
+          {/* Activate TV Button - Eliminated on mobile navbar, accessible in mobile dropdown menu & desktop library */}
+          {!isMobileScreen && (
+            <button
+              onClick={() => setCurrentView('activate-tv')}
+              className="hide-on-mobile"
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                padding: '0 12px',
+                height: '36px',
+                borderRadius: '8px',
+                background: currentView === 'activate-tv' ? 'rgba(5, 217, 232, 0.22)' : 'rgba(255, 255, 255, 0.05)',
+                border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: currentView === 'activate-tv' ? '0 0 14px rgba(5, 217, 232, 0.35)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (currentView !== 'activate-tv') {
+                  e.currentTarget.style.background = 'rgba(5, 217, 232, 0.14)';
+                  e.currentTarget.style.borderColor = 'rgba(5, 217, 232, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentView !== 'activate-tv') {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                }
+              }}
+              title="Link & Activate TV App"
+            >
+              <Tv size={14} color="var(--accent-cyan)" />
+              <span>{windowWidth < 1250 ? 'TV' : 'Activate TV'}</span>
+            </button>
+          )}
 
           {/* VIP Premium Upgrade Button */}
           {user?.tier === 'vip_premium' ? (
@@ -859,6 +864,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {isAdmin && (
             <button
               onClick={() => setCurrentView('admin')}
+              className="hide-on-compact-mobile"
               style={{
                 padding: '0 10px',
                 height: '36px',
@@ -1201,6 +1207,179 @@ export const Navbar: React.FC<NavbarProps> = ({
             overflowY: 'auto'
           }}
         >
+          {/* 1. Dedicated Search Box with Autocomplete & Voice */}
+          <div style={{ position: 'relative' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                border: searchQuery ? '1px solid var(--accent-pink)' : '1px solid rgba(255, 255, 255, 0.16)',
+                boxShadow: searchQuery ? '0 0 16px rgba(255, 42, 109, 0.25)' : 'none',
+                gap: '10px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Search size={18} color={searchQuery ? 'var(--accent-pink)' : '#94a3b8'} style={{ flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search movies, TV shows, actors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#fff',
+                  fontSize: '0.90rem',
+                  width: '100%',
+                  minWidth: 0
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                    const recognition = new SpeechRec();
+                    recognition.onresult = (event: any) => {
+                      const transcript = event.results[0][0].transcript;
+                      setSearchQuery(transcript);
+                    };
+                    recognition.start();
+                  } else {
+                    setSearchQuery('action movies');
+                  }
+                }}
+                style={{ color: 'var(--accent-pink)', padding: '2px 4px', cursor: 'pointer', flexShrink: 0 }}
+                title="Voice Search"
+                aria-label="Voice Search"
+              >
+                <Mic size={16} />
+              </button>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{ color: '#94a3b8', cursor: 'pointer', flexShrink: 0 }}
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* Live Search Autocomplete in Mobile Menu */}
+            {searchResults.length > 0 && (
+              <div
+                className="animate-fade-in"
+                style={{
+                  marginTop: '8px',
+                  background: 'rgba(18, 20, 30, 0.98)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 42, 109, 0.35)',
+                  padding: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  maxHeight: '260px',
+                  overflowY: 'auto'
+                }}
+              >
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '4px 8px' }}>
+                  Matching Titles ({searchResults.length})
+                </div>
+                {searchResults.map((title) => (
+                  <div
+                    key={title.id}
+                    onClick={() => {
+                      onSelectTitle(title);
+                      setIsMobileMenuOpen(false);
+                      setSearchQuery('');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.04)',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    <img
+                      src={title.posterUrl}
+                      alt={title.title}
+                      style={{ width: '38px', height: '54px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {title.title}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                        {title.releaseYear} • {title.rating} • {title.genres.slice(0, 2).join(', ')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 2. Featured Action: Activate Smart TV Card */}
+          <div
+            onClick={() => {
+              setCurrentView('activate-tv');
+              setIsMobileMenuOpen(false);
+            }}
+            style={{
+              padding: '12px 14px',
+              borderRadius: '12px',
+              background: currentView === 'activate-tv'
+                ? 'linear-gradient(90deg, rgba(5, 217, 232, 0.25) 0%, rgba(5, 217, 232, 0.08) 100%)'
+                : 'linear-gradient(90deg, rgba(5, 217, 232, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%)',
+              border: currentView === 'activate-tv' ? '1px solid var(--accent-cyan)' : '1px solid rgba(5, 217, 232, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              boxShadow: currentView === 'activate-tv' ? '0 0 16px rgba(5, 217, 232, 0.25)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'rgba(5, 217, 232, 0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <Tv size={20} color="var(--accent-cyan)" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Activate Smart TV
+                  <span style={{ fontSize: '0.66rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(5, 217, 232, 0.2)', color: 'var(--accent-cyan)', fontWeight: 700 }}>
+                    10-FOOT APP
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                  Pair your TV app with 6-digit code
+                </div>
+              </div>
+            </div>
+            <ChevronDown size={16} color="var(--accent-cyan)" style={{ transform: 'rotate(-90deg)' }} />
+          </div>
+
           {/* User Account / Auth Card in Mobile Drawer */}
           <div
             style={{

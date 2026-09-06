@@ -38,13 +38,14 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   if (!titles || titles.length === 0) return null;
 
   return (
-    <section style={{ margin: '40px 0', position: 'relative' }}>
+    <section style={{ margin: '32px 0', position: 'relative' }}>
       {/* Row Header */}
       <div
+        className="content-row-header"
         style={{
           maxWidth: '1440px',
           margin: '0 auto',
-          padding: '0 32px 14px',
+          padding: '0 32px 12px',
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'space-between'
@@ -65,9 +66,10 @@ export const ContentRow: React.FC<ContentRowProps> = ({
 
       {/* Carousel Container */}
       <div style={{ position: 'relative', width: '100%' }}>
-        {/* Left Arrow */}
+        {/* Left Arrow - hidden on touch/mobile */}
         <button
           onClick={() => scroll('left')}
+          className="hide-on-mobile"
           style={{
             position: 'absolute',
             left: '8px',
@@ -90,10 +92,10 @@ export const ContentRow: React.FC<ContentRowProps> = ({
           <ChevronLeft size={24} />
         </button>
 
-        {/* Scrollable Track */}
+        {/* Scrollable Track with Touch Optimization */}
         <div
           ref={rowRef}
-          className="no-scrollbar"
+          className="no-scrollbar content-row-track scroll-touch"
           style={{
             display: 'flex',
             gap: '16px',
@@ -119,9 +121,10 @@ export const ContentRow: React.FC<ContentRowProps> = ({
           })}
         </div>
 
-        {/* Right Arrow */}
+        {/* Right Arrow - hidden on touch/mobile */}
         <button
           onClick={() => scroll('right')}
+          className="hide-on-mobile"
           style={{
             position: 'absolute',
             right: '8px',

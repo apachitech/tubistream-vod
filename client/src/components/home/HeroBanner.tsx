@@ -12,8 +12,16 @@ interface HeroBannerProps {
 export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440);
   const { playTitle } = usePlayer();
   const { user, isInMyList, toggleMyList } = useAuth();
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (titles.length === 0) return;
@@ -22,6 +30,25 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
     }, 9000);
     return () => clearInterval(interval);
   }, [titles]);
+
+  // Touch Swipe Handlers for mobile gesture navigation
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+    if (diff > 45) {
+      // Swiped left -> next
+      setCurrentIndex((prev) => (prev + 1) % titles.length);
+    } else if (diff < -45) {
+      // Swiped right -> prev
+      setCurrentIndex((prev) => (prev - 1 + titles.length) % titles.length);
+    }
+    setTouchStartX(null);
+  };
 
   if (titles.length === 0) {
     return (
@@ -42,9 +69,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
 
   return (
     <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
         position: 'relative',
-        height: '620px',
+        height: 'clamp(440px, 74vh, 600px)',
         width: '100%',
         overflow: 'hidden',
         background: '#090a0f'
@@ -54,10 +83,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
       <div
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
+          inset: 0,
           backgroundImage: `url(${currentTitle.backdropUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center 20%',
@@ -71,7 +97,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
             position: 'absolute',
             inset: 0,
             background:
-              'linear-gradient(180deg, rgba(9,10,15,0.4) 0%, rgba(9,10,15,0.2) 40%, rgba(9,10,15,0.85) 85%, #090a0f 100%)'
+              'linear-gradient(180deg, rgba(9,10,15,0.4) 0%, rgba(9,10,15,0.25) 35%, rgba(9,10,15,0.88) 75%, #090a0f 100%)'
           }}
         />
         <div
@@ -79,7 +105,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
             position: 'absolute',
             inset: 0,
             background:
-              'linear-gradient(90deg, #090a0f 0%, rgba(9,10,15,0.85) 30%, rgba(9,10,15,0.3) 70%, transparent 100%)'
+              'linear-gradient(90deg, #090a0f 0%, rgba(9,10,15,0.85) 35%, rgba(9,10,15,0.3) 70%, transparent 100%)'
           }}
         />
       </div>
@@ -91,14 +117,15 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
           maxWidth: '1440px',
           margin: '0 auto',
           height: '100%',
-          padding: '0 32px',
+          padding: '0 clamp(16px, 4vw, 32px)',
+          paddingBottom: 'clamp(44px, 7vh, 56px)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           zIndex: 10
         }}
       >
-        <div style={{ maxWidth: '640px' }}>
+        <div style={{ maxWidth: '640px', width: '100%' }}>
           {/* Tubi Original / Exclusive Badge */}
           {currentTitle.accessTier === 'vip_premium' ? (
             <div
@@ -111,15 +138,15 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
                 color: '#ffd700',
                 padding: '4px 14px',
                 borderRadius: 'var(--radius-full)',
-                fontSize: '0.8rem',
+                fontSize: '0.76rem',
                 fontWeight: 800,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                marginBottom: '16px',
+                marginBottom: '12px',
                 boxShadow: '0 2px 12px rgba(255, 215, 0, 0.2)'
               }}
             >
-              <Crown size={15} fill="#ffd700" /> Tubi+ VIP Exclusive Premiere
+              <Crown size={14} fill="#ffd700" /> Tubi+ VIP Exclusive Premiere
             </div>
           ) : currentTitle.isOriginal ? (
             <div
@@ -132,11 +159,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
                 color: '#ff2a6d',
                 padding: '4px 12px',
                 borderRadius: 'var(--radius-full)',
-                fontSize: '0.8rem',
+                fontSize: '0.76rem',
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                marginBottom: '16px'
+                marginBottom: '12px'
               }}
             >
               <Sparkles size={14} /> Tubi Original Special
@@ -146,11 +173,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
           {/* Title Heading */}
           <h1
             style={{
-              fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
-              lineHeight: 1.08,
+              fontSize: 'clamp(1.75rem, 5.5vw, 3.6rem)',
+              lineHeight: 1.1,
               fontWeight: 900,
               color: '#fff',
-              marginBottom: '16px',
+              marginBottom: '12px',
               textShadow: '0 4px 20px rgba(0,0,0,0.8)'
             }}
           >
@@ -163,9 +190,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
               display: 'flex',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '12px',
-              marginBottom: '18px',
-              fontSize: '0.9rem'
+              gap: '10px',
+              marginBottom: '14px',
+              fontSize: '0.85rem'
             }}
           >
             <span style={{ color: 'var(--accent-green)', fontWeight: 800 }}>
@@ -175,7 +202,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
             <span className="badge-rating">{currentTitle.rating}</span>
             <span style={{ color: 'var(--text-secondary)' }}>{currentTitle.durationMinutes}m</span>
             <span className="badge-hd">4K UHD</span>
-            <span className="badge-hd" style={{ borderColor: 'var(--accent-pink)', color: 'var(--accent-pink)' }}>
+            <span className="badge-hd hide-on-compact-mobile" style={{ borderColor: 'var(--accent-pink)', color: 'var(--accent-pink)' }}>
               Dolby 5.1
             </span>
           </div>
@@ -184,11 +211,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
           <p
             style={{
               color: '#cbd5e1',
-              fontSize: '1.02rem',
-              lineHeight: 1.55,
-              marginBottom: '28px',
+              fontSize: 'clamp(0.85rem, 2.2vw, 1rem)',
+              lineHeight: 1.45,
+              marginBottom: '16px',
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: windowWidth < 640 ? 2 : 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               textShadow: '0 2px 10px rgba(0,0,0,0.8)'
@@ -198,16 +225,16 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
           </p>
 
           {/* Genre Tags */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }}>
-            {currentTitle.genres.map((g) => (
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            {(windowWidth < 500 ? currentTitle.genres.slice(0, 3) : currentTitle.genres).map((g) => (
               <span
                 key={g}
                 style={{
-                  fontSize: '0.78rem',
+                  fontSize: '0.74rem',
                   fontWeight: 600,
                   color: 'var(--text-secondary)',
                   background: 'rgba(255,255,255,0.06)',
-                  padding: '3px 10px',
+                  padding: '3px 9px',
                   borderRadius: '4px'
                 }}
               >
@@ -216,91 +243,135 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
             ))}
           </div>
 
-          {/* Action CTAs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {/* Action CTAs - Elevated with zIndex and protected touch padding */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              position: 'relative',
+              zIndex: 15
+            }}
+          >
             {currentTitle.accessTier === 'vip_premium' && user?.tier !== 'vip_premium' ? (
               <button
                 onClick={() => onOpenDetails(currentTitle)}
                 style={{
-                  padding: '14px 28px',
-                  fontSize: '1.02rem',
+                  padding: '11px clamp(16px, 3.5vw, 26px)',
+                  minHeight: '44px',
+                  fontSize: 'clamp(0.86rem, 2vw, 1.02rem)',
                   fontWeight: 800,
-                  borderRadius: 'var(--radius-full)',
+                  borderRadius: '10px',
                   background: 'linear-gradient(135deg, #ffd700 0%, #ff9100 100%)',
                   color: '#000',
                   border: 'none',
                   cursor: 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '8px',
                   boxShadow: '0 4px 20px rgba(255, 215, 0, 0.4)'
                 }}
               >
-                <Crown size={20} fill="#000" /> Watch with VIP
+                <Crown size={18} fill="#000" /> Watch with VIP
               </button>
             ) : (
               <button
                 onClick={() => playTitle(currentTitle)}
                 className="btn-primary"
-                style={{ padding: '14px 32px', fontSize: '1.05rem', fontWeight: 700 }}
+                style={{
+                  padding: '11px clamp(16px, 3.5vw, 28px)',
+                  minHeight: '44px',
+                  fontSize: 'clamp(0.88rem, 2vw, 1.02rem)',
+                  fontWeight: 700,
+                  borderRadius: '10px'
+                }}
               >
-                <Play size={20} fill="#fff" /> Watch Free Now
+                <Play size={18} fill="#fff" /> Watch Free Now
               </button>
             )}
 
+            {/* My List Button: Prominent, zero-obstruction tap target */}
             <button
               onClick={() => toggleMyList(currentTitle.id)}
               className="btn-secondary"
-              style={{ padding: '14px 22px', fontSize: '0.95rem' }}
+              style={{
+                padding: '11px clamp(14px, 2.5vw, 20px)',
+                minHeight: '44px',
+                fontSize: 'clamp(0.84rem, 1.8vw, 0.95rem)',
+                borderRadius: '10px',
+                borderColor: inList ? 'var(--accent-green)' : 'rgba(255,255,255,0.18)',
+                background: inList ? 'rgba(0, 240, 118, 0.12)' : 'rgba(255,255,255,0.06)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              aria-label={inList ? 'Remove from My List' : 'Add to My List'}
             >
               {inList ? <Check size={18} color="var(--accent-green)" /> : <Plus size={18} />}
-              {inList ? 'In My List' : 'My List'}
+              <span>{inList ? 'In My List' : 'My List'}</span>
             </button>
 
+            {/* Details Button */}
             <button
               onClick={() => onOpenDetails(currentTitle)}
               className="btn-secondary"
-              style={{ padding: '14px 18px', fontSize: '0.95rem' }}
+              style={{
+                padding: '11px clamp(12px, 2vw, 18px)',
+                minHeight: '44px',
+                fontSize: 'clamp(0.84rem, 1.8vw, 0.95rem)',
+                borderRadius: '10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
-              <Info size={18} /> Details
+              <Info size={18} />
+              <span>Details</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Carousel Navigation Arrows & Indicators */}
+      {/* Carousel Navigation Indicators */}
       <div
         style={{
           position: 'absolute',
-          bottom: '24px',
-          right: '32px',
+          bottom: windowWidth < 768 ? '14px' : '24px',
+          ...(windowWidth < 768
+            ? { left: '50%', transform: 'translateX(-50%)' }
+            : { right: '32px' }),
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          zIndex: 20
+          gap: '8px',
+          zIndex: 10,
+          pointerEvents: 'auto'
         }}
       >
         <button
           onClick={() => setCurrentIndex((prev) => (prev - 1 + titles.length) % titles.length)}
-          className="btn-secondary"
-          style={{ width: '40px', height: '40px', padding: 0, borderRadius: '50%', justifyContent: 'center' }}
+          className="btn-secondary hide-on-mobile"
+          style={{ width: '38px', height: '38px', padding: 0, borderRadius: '50%', justifyContent: 'center' }}
+          title="Previous Spotlight"
+          aria-label="Previous Spotlight"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={18} />
         </button>
 
-        {/* Dots */}
-        <div style={{ display: 'flex', gap: '6px' }}>
+        {/* Indicator Dots */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           {titles.map((_, i) => (
             <div
               key={i}
               onClick={() => setCurrentIndex(i)}
               style={{
-                width: i === currentIndex ? '24px' : '8px',
-                height: '8px',
+                width: i === currentIndex ? '22px' : '7px',
+                height: '7px',
                 borderRadius: '4px',
                 background: i === currentIndex ? 'var(--accent-pink)' : 'rgba(255,255,255,0.3)',
                 cursor: 'pointer',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
             />
           ))}
@@ -308,10 +379,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ titles, onOpenDetails })
 
         <button
           onClick={() => setCurrentIndex((prev) => (prev + 1) % titles.length)}
-          className="btn-secondary"
-          style={{ width: '40px', height: '40px', padding: 0, borderRadius: '50%', justifyContent: 'center' }}
+          className="btn-secondary hide-on-mobile"
+          style={{ width: '38px', height: '38px', padding: 0, borderRadius: '50%', justifyContent: 'center' }}
+          title="Next Spotlight"
+          aria-label="Next Spotlight"
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={18} />
         </button>
       </div>
     </div>

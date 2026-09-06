@@ -335,18 +335,19 @@ export const VideoPlayer: React.FC = () => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 20%, transparent 70%, rgba(0,0,0,0.92) 100%)',
-            padding: '24px 32px',
+            padding: 'clamp(12px, 3vw, 24px) clamp(14px, 4vw, 32px)',
             pointerEvents: 'none'
           }}
         >
           {/* Top Bar: Title, Episode, Close, DRM Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pointerEvents: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pointerEvents: 'auto', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
               <button
                 onClick={closePlayer}
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '38px',
+                  height: '38px',
+                  minWidth: '38px',
                   borderRadius: '50%',
                   background: 'rgba(255,255,255,0.1)',
                   display: 'flex',
@@ -355,14 +356,14 @@ export const VideoPlayer: React.FC = () => {
                   color: '#fff'
                 }}
               >
-                <X size={22} />
+                <X size={20} />
               </button>
 
-              <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ fontSize: 'clamp(0.95rem, 3.5vw, 1.25rem)', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {activeFastChannel ? activeFastChannel.name : activeTitle?.title}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {activeEpisode
                     ? `S${activeEpisode.seasonNumber} E${activeEpisode.episodeNumber}: ${activeEpisode.title}`
                     : isLive
@@ -372,10 +373,10 @@ export const VideoPlayer: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
               <button
                 onClick={() => setShowDrmModal(!showDrmModal)}
-                className="btn-secondary"
+                className="btn-secondary hide-on-compact-mobile"
                 style={{ padding: '6px 12px', fontSize: '0.8rem', gap: '6px' }}
               >
                 <ShieldCheck size={16} color="var(--accent-cyan)" />
@@ -476,6 +477,7 @@ export const VideoPlayer: React.FC = () => {
                   </button>
                   <input
                     type="range"
+                    className="hide-on-compact-mobile"
                     min={0}
                     max={1}
                     step={0.05}

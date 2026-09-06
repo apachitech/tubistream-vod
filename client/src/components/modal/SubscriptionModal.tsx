@@ -169,7 +169,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px',
+        padding: 'clamp(8px, 2.5vw, 24px)',
         overflowY: 'auto'
       }}
       onClick={onClose}
@@ -180,9 +180,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
         style={{
           width: '100%',
           maxWidth: '880px',
-          maxHeight: '92vh',
-          borderRadius: '28px',
-          padding: '36px',
+          maxHeight: '94vh',
+          borderRadius: '20px',
+          padding: 'clamp(20px, 3.5vw, 36px) clamp(16px, 3vw, 32px)',
           position: 'relative',
           boxShadow: '0 25px 60px rgba(0,0,0,0.95)',
           border: '2px solid rgba(255, 215, 0, 0.4)',
@@ -382,7 +382,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
             )}
 
             {/* Main Checkout Columns: Left = Payment Method & Form, Right = Order Summary */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '28px', alignItems: 'start' }}>
+            <div className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '28px', alignItems: 'start' }}>
               {/* Left Column: Payment Form */}
               <div>
                 {/* Registered Member Verification Banner / Gate */}
