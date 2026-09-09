@@ -63,7 +63,7 @@ export const VideoPlayer: React.FC = () => {
   const currentMedia = activeEpisode || activeTitle || activeFastChannel;
   const streamUrl = activeEpisode?.streamUrl || activeTitle?.streamUrl || activeFastChannel?.streamUrl || '';
 
-  // Initialize HLS / HTML5 Video Stream
+  // Initialize HLS / HTML5 Video Stream (Supports .m3u8 and direct .mp4, .webm, Cloudinary URLs)
   useEffect(() => {
     if (!videoRef.current || !streamUrl) return;
 
@@ -73,11 +73,17 @@ export const VideoPlayer: React.FC = () => {
     setTriggeredBreakIds(new Set());
     setCurrentAdBreak(null);
 
-    if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
+    // Clean up previous HLS instance if any
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
 
+    // Determine if stream is an HLS playlist or a progressive video file (.mp4, .webm, Cloudinary video)
+    const cleanUrl = streamUrl.split('?')[0].toLowerCase();
+    const isHlsStream = cleanUrl.endsWith('.m3u8') || streamUrl.includes('/sp_auto/') || streamUrl.includes('.m3u8');
+
+    if (isHlsStream && Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: isLive,
@@ -102,13 +108,40 @@ export const VideoPlayer: React.FC = () => {
         }
       });
 
-      hlsRef.current = hls;
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = streamUrl;
-      video.addEventListener('loadedmetadata', () => {
-        if (initialTimeSeconds > 0) video.currentTime = initialTimeSeconds;
-        video.play().catch(() => setIsPaused(true));
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          console.warn('[VideoPlayer] HLS fatal error, falling back to native video tag:', data);
+          hls.destroy();
+          hlsRef.current = null;
+          video.src = streamUrl;
+          video.play().catch(() => setIsPaused(true));
+        }
       });
+
+      hlsRef.current = hls;
+    } else {
+      // Direct progressive video playback (.mp4, .webm, Cloudinary, Safari native HLS)
+      video.src = streamUrl;
+
+      const handleLoadedMetadata = () => {
+        if (initialTimeSeconds > 0) {
+          video.currentTime = initialTimeSeconds;
+        }
+        if (video.videoHeight) {
+          setCurrentResolution(`${video.videoHeight}p`);
+        }
+        video.play().catch(() => setIsPaused(true));
+      };
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+      return () => {
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+      };
     }
 
     return () => {
@@ -117,7 +150,7 @@ export const VideoPlayer: React.FC = () => {
         hlsRef.current = null;
       }
     };
-  }, [streamUrl]);
+  }, [streamUrl, isLive]);
 
   // Video Time Update & Cue Point Triggers
   const handleTimeUpdate = () => {

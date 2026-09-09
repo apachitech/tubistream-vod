@@ -1134,13 +1134,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
               </div>
 
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>HLS STREAM URL (.m3u8 or .mp4)</label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>VIDEO STREAM URL (MP4 / WebM or HLS .m3u8)</label>
                 <input
                   type="text"
                   required
                   value={newTitle.streamUrl}
                   onChange={(e) => setNewTitle({ ...newTitle, streamUrl: e.target.value })}
-                  placeholder="https://res.cloudinary.com/.../stream.m3u8"
+                  placeholder="e.g. https://res.cloudinary.com/.../video.mp4 or .m3u8"
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', marginTop: '4px' }}
                 />
               </div>
