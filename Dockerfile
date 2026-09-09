@@ -24,11 +24,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=5000
+ENV HOST=0.0.0.0
 
 # Copy build output & package manifests
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/server/package*.json server/
 COPY --from=builder /app/server/dist server/dist
+COPY --from=builder /app/server/src/data server/data
 COPY --from=builder /app/client/dist client/dist
 
 # Install production-only dependencies for backend

@@ -71,9 +71,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(Number(PORT), HOST, () => {
   console.log(`====================================================`);
-  console.log(`🚀 TubiStream Microservices Backend running on port ${PORT}`);
+  console.log(`🚀 TubiStream Microservices Backend running on http://${HOST}:${PORT}`);
   console.log(`📡 API Gateway: http://localhost:${PORT}/api/health`);
   console.log(`🎬 Catalog Service: http://localhost:${PORT}/api/catalog/titles`);
   console.log(`📺 FAST EPG Service: http://localhost:${PORT}/api/fast/channels`);
