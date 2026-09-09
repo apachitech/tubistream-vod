@@ -3,6 +3,8 @@ import { Title, FastChannel, AnalyticsSummary, AdCreative, User, PlatformPlanSet
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { usePlayer } from '../../context/PlayerContext';
+import { TitleDetailModal } from '../modal/TitleDetailModal';
 import {
   LayoutDashboard, Film, Radio, DollarSign, Activity, Sparkles, Plus, Trash2, Edit3,
   TrendingUp, Users, HardDrive, ShieldCheck, Check, RefreshCw, Layers,
@@ -189,8 +191,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
   const [copiedVastId, setCopiedVastId] = useState<string | null>(null);
   const [previewVastXml, setPreviewVastXml] = useState<string | null>(null);
 
-  // New Title Form State
-  const [newTitle, setNewTitle] = useState({
+  // New & Edit Title Form State
+  const initialTitleState = {
     title: '',
     type: 'movie' as 'movie' | 'series',
     synopsis: '',
@@ -209,8 +211,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
     cast: 'John David, Robert Pattinson',
     studio: 'Universal Pictures',
     cuePointsSeconds: '300, 900, 1800'
-  });
+  };
 
+  const [newTitle, setNewTitle] = useState(initialTitleState);
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [previewTitleModal, setPreviewTitleModal] = useState<Title | null>(null);
+  const [showLiveFormPreview, setShowLiveFormPreview] = useState<boolean>(true);
   const [formSuccess, setFormSuccess] = useState(false);
 
   const fetchAllData = async () => {
@@ -584,33 +590,82 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
     fetchAllData();
   }, []);
 
-  const handleCreateTitle = async (e: React.FormEvent) => {
+  const handleSaveTitle = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const payload = {
         ...newTitle,
-        genres: newTitle.genres.split(',').map((g) => g.trim()),
+        genres: typeof newTitle.genres === 'string' ? newTitle.genres.split(',').map((g) => g.trim()) : newTitle.genres,
         tags: ['Featured', 'New Release'],
-        cast: newTitle.cast.split(',').map((c) => c.trim()),
+        cast: typeof newTitle.cast === 'string' ? newTitle.cast.split(',').map((c) => c.trim()) : newTitle.cast,
         audioTracks: [{ id: 'en-51', language: 'en', label: 'English (Dolby 5.1)', codec: 'aac', channels: '5.1 Dolby Digital' as any }],
         subtitles: [{ id: 'sub-en', language: 'en', label: 'English [CC]', kind: 'captions' as any, src: '', default: true }],
         renditions: [{ resolution: '1080p' as any, bitrateKbps: 5000, width: 1920, height: 1080, fps: 24, url: newTitle.streamUrl }],
         drm: { drmType: 'ClearKey' as any, licenseServerUrl: '/api/drm/license', isEncrypted: false, securityLevel: 'L3' as any },
-        cuePointsSeconds: newTitle.cuePointsSeconds.split(',').map((s) => parseInt(s.trim()) || 0),
+        cuePointsSeconds: typeof newTitle.cuePointsSeconds === 'string'
+          ? newTitle.cuePointsSeconds.split(',').map((s) => parseInt(s.trim()) || 0)
+          : newTitle.cuePointsSeconds,
         isFeatured: true,
         isOriginal: false,
         isTrending: true
       };
 
-      const res = await api.createTitle(payload);
-      if (res.success) {
-        setFormSuccess(true);
-        setTimeout(() => setFormSuccess(false), 3000);
-        fetchAllData();
+      if (editingTitleId) {
+        const res = await api.updateTitle(editingTitleId, payload);
+        if (res.success) {
+          setFormSuccess(true);
+          setEditingTitleId(null);
+          setNewTitle(initialTitleState);
+          setTimeout(() => setFormSuccess(false), 3500);
+          fetchAllData();
+        }
+      } else {
+        const res = await api.createTitle(payload);
+        if (res.success) {
+          setFormSuccess(true);
+          setNewTitle(initialTitleState);
+          setTimeout(() => setFormSuccess(false), 3500);
+          fetchAllData();
+        }
       }
     } catch (err) {
-      console.error('Create title failed', err);
+      console.error('Save title failed', err);
     }
+  };
+
+  const handleStartEditTitle = (title: Title) => {
+    setEditingTitleId(title.id);
+    setNewTitle({
+      title: title.title || '',
+      type: (title.type as any) || 'movie',
+      synopsis: title.synopsis || '',
+      shortDescription: title.shortDescription || '',
+      releaseYear: title.releaseYear || 2025,
+      durationMinutes: title.durationMinutes || 90,
+      rating: title.rating || 'PG-13',
+      imdbScore: title.imdbScore || 8.0,
+      matchScore: title.matchScore || 95,
+      accessTier: title.accessTier || 'free',
+      posterUrl: title.posterUrl || '',
+      backdropUrl: title.backdropUrl || '',
+      streamUrl: title.streamUrl || '',
+      genres: Array.isArray(title.genres) ? title.genres.join(', ') : (title.genres || 'Action'),
+      director: title.director || '',
+      cast: Array.isArray(title.cast) ? title.cast.join(', ') : (title.cast || ''),
+      studio: title.studio || '',
+      cuePointsSeconds: Array.isArray(title.cuePointsSeconds) ? title.cuePointsSeconds.join(', ') : '300, 900, 1800'
+    });
+
+    // Scroll smoothly to form container
+    const formEl = document.getElementById('catalog-ingestion-form-container');
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitleId(null);
+    setNewTitle(initialTitleState);
   };
 
   const handleDeleteTitle = async (id: string) => {
@@ -989,19 +1044,319 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
       {/* Tab 2: Catalog CMS Ingestion Form & Title List */}
       {activeTab === 'catalog' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '36px' }}>
-          {/* Add New Title Form */}
-          <div className="glass-panel" style={{ padding: '28px', borderRadius: '18px', border: '1px solid var(--border-accent)' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Plus size={20} color="var(--accent-pink)" /> Ingest New VOD Title
-            </h3>
-
-            {formSuccess && (
-              <div style={{ padding: '12px', background: 'rgba(0, 240, 118, 0.15)', color: '#00f076', borderRadius: '8px', marginBottom: '16px', fontWeight: 700 }}>
-                ✓ Title successfully ingested into VOD catalog and ML embeddings retrained!
+          {/* Ingestion & Edit Form Container */}
+          <div
+            id="catalog-ingestion-form-container"
+            className="glass-panel"
+            style={{
+              padding: '28px',
+              borderRadius: '18px',
+              border: editingTitleId ? '2px solid var(--accent-pink)' : '1px solid var(--border-accent)',
+              boxShadow: editingTitleId ? '0 0 25px rgba(255, 42, 109, 0.25)' : 'none',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {/* Editing Notification Banner */}
+            {editingTitleId && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 18px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, rgba(255, 42, 109, 0.2) 0%, rgba(157, 78, 221, 0.2) 100%)',
+                  border: '1px solid var(--accent-pink)',
+                  marginBottom: '20px',
+                  color: '#fff'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Edit3 size={18} color="var(--accent-pink)" />
+                  <div>
+                    <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>
+                      Editing Title Mode Active:
+                    </span>
+                    <span style={{ marginLeft: '6px', color: '#ffd700', fontWeight: 700 }}>
+                      "{newTitle.title || 'Untitled'}"
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block' }}>
+                      ID: {editingTitleId} • Modify parameters below and click "Save & Update Title"
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelEditTitle}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    color: '#fff',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <X size={14} /> Cancel Editing
+                </button>
               </div>
             )}
 
-            <form onSubmit={handleCreateTitle} className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', color: '#fff' }}>
+                {editingTitleId ? (
+                  <>
+                    <Edit3 size={20} color="var(--accent-pink)" /> Update Existing Catalog Title
+                  </>
+                ) : (
+                  <>
+                    <Plus size={20} color="var(--accent-pink)" /> Ingest New VOD Title
+                  </>
+                )}
+              </h3>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowLiveFormPreview(!showLiveFormPreview)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: showLiveFormPreview ? 'rgba(5, 217, 232, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                    border: showLiveFormPreview ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.15)',
+                    color: showLiveFormPreview ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Eye size={14} /> {showLiveFormPreview ? 'Hide Live Preview' : 'Show Live Preview'}
+                </button>
+
+                {newTitle.title && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const mockTitle: Title = {
+                        id: editingTitleId || 'preview-temp',
+                        title: newTitle.title || 'Untitled Stream',
+                        slug: (newTitle.title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                        type: newTitle.type,
+                        synopsis: newTitle.synopsis || 'Plot synopsis preview',
+                        shortDescription: newTitle.shortDescription || 'Short description preview',
+                        releaseYear: Number(newTitle.releaseYear) || 2025,
+                        durationMinutes: Number(newTitle.durationMinutes) || 90,
+                        rating: newTitle.rating,
+                        imdbScore: Number(newTitle.imdbScore) || 8.0,
+                        matchScore: 95,
+                        posterUrl: newTitle.posterUrl || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800',
+                        backdropUrl: newTitle.backdropUrl || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600',
+                        streamUrl: newTitle.streamUrl || '',
+                        genres: typeof newTitle.genres === 'string' ? newTitle.genres.split(',').map(g => g.trim()) : newTitle.genres,
+                        tags: ['Featured', 'New Release'],
+                        cast: typeof newTitle.cast === 'string' ? newTitle.cast.split(',').map(c => c.trim()) : newTitle.cast,
+                        director: newTitle.director || 'Director Preview',
+                        studio: newTitle.studio || 'Studio Preview',
+                        audioTracks: [{ id: 'en-51', language: 'en', label: 'English (Dolby 5.1)', codec: 'aac', channels: '5.1 Dolby Digital' }],
+                        subtitles: [{ id: 'sub-en', language: 'en', label: 'English [CC]', kind: 'captions', src: '', default: true }],
+                        renditions: [{ resolution: '1080p', bitrateKbps: 5000, width: 1920, height: 1080, fps: 24, url: newTitle.streamUrl }],
+                        drm: { drmType: 'ClearKey', licenseServerUrl: '/api/drm/license', isEncrypted: false, securityLevel: 'L3' },
+                        cuePointsSeconds: [300, 900],
+                        accessTier: newTitle.accessTier,
+                        totalViews: 1250,
+                        createdAt: new Date().toISOString()
+                      };
+                      setPreviewTitleModal(mockTitle);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'linear-gradient(135deg, rgba(255, 42, 109, 0.25) 0%, rgba(157, 78, 221, 0.25) 100%)',
+                      border: '1px solid var(--accent-pink)',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Play size={13} fill="#fff" /> Open Player Preview
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {formSuccess && (
+              <div style={{ padding: '12px 18px', background: 'rgba(0, 240, 118, 0.15)', color: '#00f076', borderRadius: '8px', marginBottom: '20px', fontWeight: 700, border: '1px solid rgba(0, 240, 118, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle2 size={18} />
+                <span>
+                  {editingTitleId
+                    ? '✓ Title updated successfully and synchronized across streaming nodes!'
+                    : '✓ Title successfully ingested into VOD catalog and ML embeddings retrained!'}
+                </span>
+              </div>
+            )}
+
+            {/* Live Visual Card Preview Area */}
+            {showLiveFormPreview && (
+              <div
+                style={{
+                  background: 'rgba(0,0,0,0.4)',
+                  padding: '20px',
+                  borderRadius: '14px',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  marginBottom: '24px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Live Visual Display Preview (Portrait & Landscape Surfaces)
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--accent-green)', fontWeight: 700 }}>
+                    ● Real-Time Sync with Form Fields
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                  {/* Card 1: 2:3 Portrait Poster View (Feed Rows) */}
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 700 }}>
+                      1. Portrait Poster (Mobile / Catalog Feeds)
+                    </span>
+                    <div style={{ display: 'flex', gap: '14px' }}>
+                      <div
+                        style={{
+                          width: '100px',
+                          height: '150px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          background: '#161a28',
+                          position: 'relative',
+                          flexShrink: 0,
+                          border: '1px solid rgba(255,255,255,0.1)'
+                        }}
+                      >
+                        {newTitle.posterUrl ? (
+                          <img
+                            src={newTitle.posterUrl}
+                            alt="Poster Preview"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              (e.target as any).src = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800';
+                            }}
+                          />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                            <Film size={24} />
+                          </div>
+                        )}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '6px',
+                            right: '6px',
+                            background: newTitle.accessTier === 'vip_premium' ? 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)' : 'rgba(0,0,0,0.75)',
+                            color: newTitle.accessTier === 'vip_premium' ? '#000' : '#fff',
+                            fontSize: '0.62rem',
+                            fontWeight: 800,
+                            padding: '2px 5px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          {newTitle.accessTier === 'vip_premium' ? 'VIP' : 'FREE'}
+                        </span>
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.96rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {newTitle.title || 'Untitled Title'}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                          <span>{newTitle.releaseYear || 2025}</span>
+                          <span>•</span>
+                          <span className="badge-rating" style={{ fontSize: '0.65rem', padding: '1px 4px' }}>{newTitle.rating}</span>
+                          <span>•</span>
+                          <span>{newTitle.durationMinutes || 90}m</span>
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--accent-pink)', marginTop: '4px', fontWeight: 600 }}>
+                          {newTitle.genres || 'Action'}
+                        </div>
+                        <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {newTitle.synopsis || 'Enter synopsis to preview plot description...'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: 16:9 Landscape Hero Backdrop View */}
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 700 }}>
+                      2. Landscape Hero Backdrop (Widescreen / Spotlight Banner)
+                    </span>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '140px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        background: '#161a28',
+                        position: 'relative',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}
+                    >
+                      {newTitle.backdropUrl ? (
+                        <img
+                          src={newTitle.backdropUrl}
+                          alt="Backdrop Preview"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.target as any).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                          <Film size={28} />
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.85) 100%)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'flex-end',
+                          padding: '12px'
+                        }}
+                      >
+                        <div style={{ fontWeight: 900, color: '#fff', fontSize: '1rem', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+                          {newTitle.title || 'Untitled Title'}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.72rem', color: '#e2e8f0', marginTop: '2px' }}>
+                          <span style={{ color: '#00f076', fontWeight: 800 }}>★ {newTitle.imdbScore || 8.0} IMDb</span>
+                          <span>•</span>
+                          <span>{newTitle.type === 'series' ? 'TV Series' : 'Movie'}</span>
+                          <span>•</span>
+                          <span style={{ color: 'var(--accent-cyan)' }}>{newTitle.streamUrl ? (newTitle.streamUrl.endsWith('.m3u8') ? 'HLS Live' : 'Direct MP4') : 'No Stream'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveTitle} className="responsive-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>TITLE</label>
                 <input
@@ -1178,10 +1533,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
                 />
               </div>
 
-              <div style={{ gridColumn: 'span 2' }}>
-                <button type="submit" className="btn-primary" style={{ padding: '12px 28px', fontWeight: 800 }}>
-                  <Plus size={18} /> Ingest & Transcode Title
+              <div style={{ gridColumn: 'span 2', display: 'flex', gap: '12px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{
+                    padding: '12px 28px',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: editingTitleId ? '0 0 20px rgba(255, 42, 109, 0.5)' : undefined
+                  }}
+                >
+                  {editingTitleId ? (
+                    <>
+                      <Check size={18} /> Save & Update Title
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={18} /> Ingest & Transcode Title
+                    </>
+                  )}
                 </button>
+
+                {editingTitleId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditTitle}
+                    className="btn-secondary"
+                    style={{ padding: '12px 22px', fontWeight: 700 }}
+                  >
+                    Cancel Editing
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -1281,13 +1666,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
                       </button>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <button
-                        onClick={() => handleDeleteTitle(t.id)}
-                        style={{ color: '#ff2a6d', padding: '6px', borderRadius: '4px' }}
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {/* 1. Preview Content Button */}
+                        <button
+                          type="button"
+                          onClick={() => setPreviewTitleModal(t)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: 'rgba(5, 217, 232, 0.15)',
+                            border: '1px solid rgba(5, 217, 232, 0.4)',
+                            color: '#05d9e8',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title="Preview title metadata & player"
+                        >
+                          <Eye size={14} /> Preview
+                        </button>
+
+                        {/* 2. Edit / Update Title Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditTitle(t)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: editingTitleId === t.id ? 'var(--accent-pink)' : 'rgba(157, 78, 221, 0.15)',
+                            border: '1px solid rgba(157, 78, 221, 0.4)',
+                            color: editingTitleId === t.id ? '#fff' : '#c77dff',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title="Edit title in ingestion form"
+                        >
+                          <Edit3 size={14} /> {editingTitleId === t.id ? 'Editing...' : 'Edit'}
+                        </button>
+
+                        {/* 3. Delete Title Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTitle(t.id)}
+                          style={{
+                            color: '#ff2a6d',
+                            padding: '6px 8px',
+                            borderRadius: '6px',
+                            background: 'rgba(255, 42, 109, 0.12)',
+                            border: '1px solid rgba(255, 42, 109, 0.3)',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}
+                          title="Delete title permanently"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -4847,6 +5291,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToHome, in
             </form>
           </div>
         </div>
+      )}
+
+      {/* Full Detail Modal & Interactive Stream Player Preview */}
+      {previewTitleModal && (
+        <TitleDetailModal
+          title={previewTitleModal}
+          onClose={() => setPreviewTitleModal(null)}
+        />
       )}
     </div>
   );
